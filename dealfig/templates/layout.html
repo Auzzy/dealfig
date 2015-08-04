@@ -1,0 +1,27 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html lang="en">
+<head>
+    {% block head %}
+    <title>{% block title %}{% endblock %}</title>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='modal.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='pikaday.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='sorttable.css') }}">
+    <style>{% block css %}{% endblock %}</style>
+
+    <script type="text/javascript" src="{{ url_for('static', filename='sorttable.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='pikaday.js') }}"></script>
+    <script type="text/javascript">{% block js %}{% endblock %}</script>
+    {% endblock %}
+</head>
+<body>
+    <div id="header">
+        {% block header %}{% endblock %}
+    </div>
+    <div id="content">
+        {% block content %}{% endblock %}
+    </div>
+    <div id="footer">
+        {% block footer %}{% endblock %}
+    </div>
+</body>
