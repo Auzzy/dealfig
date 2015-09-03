@@ -1,0 +1,10 @@
+/* Dynamically add/remove fields from a form */
+.entry:not(:first-of-type)
+{
+    margin-top: 10px;
+}
+
+.glyphicon
+{
+    font-size: 12px;
+}

@@ -1,6 +1,6 @@
 import os
 
-from dealfigurator import app
+from dealfig import app
 
 HOST = os.getenv("IP", "0.0.0.0")
 PORT = int(os.getenv("PORT", 8080))

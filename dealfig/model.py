@@ -16,12 +16,53 @@ manager = Manager(app)
 manager.add_command('db', MigrateCommand)
 
 
+class Designer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), unique=True)
+    type_name = db.Column("type", db.String(50), nullable=False)
+    notes = db.Column(db.Text(), default="")
+    homepage = db.Column(db.String(200))
+    contacts = db.relationship("Contact", cascade="all, delete-orphan", passive_updates=False, backref="designer", lazy="dynamic")
+    past_deals = db.relationship("PastDeal", cascade="all, delete-orphan", passive_updates=False, backref="designer", lazy="dynamic")
+
+class DesignerType(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(30), unique=True)
+
+class Contact(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    designer_id = db.Column(db.Integer, db.ForeignKey('designer.id'))
+    email = db.Column(db.String(80))
+    name = db.Column(db.String(40))
+
+class PastDeal(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    designer_id = db.Column(db.Integer, db.ForeignKey('designer.id'))
+    year = db.Column(db.Integer)
+    owner_name = db.Column(db.String(60))
+    level_name = db.Column(db.String(20))
+    cash = db.Column(db.Integer, default=0)
+    inkind = db.Column(db.Integer, default=0)
+
+
+class Lead(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    status = db.Column(db.String(20))
+    notes = db.Column(db.Text())
+    emails = db.relationship("Email", cascade="all, delete-orphan", passive_updates=False, backref="lead", lazy="dynamic")
+    
+class Email(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.DateTime())
+    notes = db.Column(db.Text())
+
+
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(50), nullable=False, default='')
     last_name = db.Column(db.String(50), nullable=False, default='')
     enabled = db.Column(db.Boolean(), nullable=False, default=False)
-    type_name = db.Column(db.Enum(name="UserType", native_enum=False, *_USER_TYPES), nullable=False)
+    type_name = db.Column("type", db.String(50), nullable=False)
     emails = db.relationship("UserEmail", lazy="dynamic")
     user_auth = db.relationship("UserAuth", uselist=False)
     
@@ -46,7 +87,8 @@ class UserAuth(db.Model, UserMixin):
 
 @event.listens_for(User, 'load')
 def load_user(target, context):
-    target.type = data.UserType[target.type_name] if target.type_name in data.UserType.__members__ else None
+    # target.type = data.UserType[target.type_name] if target.type_name in data.UserType.__members__ else None
+    pass
 
 
 

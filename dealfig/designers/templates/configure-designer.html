@@ -1,0 +1,34 @@
+{% extends "designers-layout.html" %}
+
+{% block content %}
+{% macro create_contact(contact) %}
+<div class="entry input-group col-xs-3 inline">
+    <input class="form-control" name="names" type="text" placeholder="Name" {% if contact %}value="{{ contact.name }}"{% endif %} />
+    <input class="form-control" name="emails" type="text" placeholder="Email" {% if contact %}value="{{ contact.email}}"{% endif %} />
+	<span class="input-group-btn">
+	    {% if contact %}
+        <button class="btn btn-danger btn-remove-element" type="button"><span class="glyphicon glyphicon-minus"></span></button>
+        {% else %}
+        <button class="btn btn-success btn-add-element" type="button"><span class="glyphicon glyphicon-plus"></span></button>
+        {% endif %}
+    </span>
+</div>
+{% endmacro %}
+
+<div class="control-group" id="contacts" style="margin-left:10px;">
+    <div class="controls">
+        <form role="form" autocomplete="off" method="POST">
+            {% include "render-form.html" %}
+            
+            <div id="input-container">
+                {% for contact in contacts %}
+                    {{ create_contact(contact) }}
+                {% endfor %}
+                {{ create_contact() }}
+            </div>
+            <br />
+            <input type="submit" name="Save" value="Save" />
+        </form>
+    </div>
+</div>
+{% endblock %}

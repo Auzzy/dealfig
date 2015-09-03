@@ -4,13 +4,18 @@
     {% block head %}
     <title>{% block title %}{% endblock %}</title>
     
-    <link rel="stylesheet" href="{{ url_for('static', filename='modal.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='pikaday.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='sorttable.css') }}">
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//cdn.datatables.net/1.10.9/css/jquery.dataTables.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pikaday.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dealfig.css') }}">
     <style>{% block css %}{% endblock %}</style>
-
-    <script type="text/javascript" src="{{ url_for('static', filename='sorttable.js') }}"></script>
-    <script type="text/javascript" src="{{ url_for('static', filename='pikaday.js') }}"></script>
+    
+    <script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
+    <script src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+    <script src="//cdn.datatables.net/1.10.9/js/jquery.dataTables.js"></script>
+    <script src="{{ url_for('static', filename='js/pikaday.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dealfig.js') }}"></script>
     <script type="text/javascript">{% block js %}{% endblock %}</script>
     {% endblock %}
 </head>
