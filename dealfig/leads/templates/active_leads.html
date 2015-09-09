@@ -1,2 +1,22 @@
-{% extends "layout.html" %}
+{% extends "leads-layout.html" %}
 
+{% block content %}
+<div style="width:98%; padding-top:50px">
+    <table id="sponsor-table" class="table table-striped advanced-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lead in leads %}
+            <tr>
+                <td><a href="{{ url_for('leads.info', name=lead.designer.name) }}">{{ lead.designer.name }}</a></td>
+                <td>{{ lead.status }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

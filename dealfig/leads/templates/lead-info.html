@@ -1,0 +1,41 @@
+{% extends "leads-layout.html" %}
+
+{% block title %}{{ lead.name }}{% endblock %}
+
+{% block content %}
+<h1>{{ lead.name }}</h1>
+
+<h2 style="display:inline;">Info</h2>
+&nbsp;&nbsp;<a href="{{ url_for('leads.configure', name=lead.name) }}"><img src="{{ url_for('static', filename='img/edit.png') }}" /></a>
+<br style="line-height:175%" />
+
+<span style="font-weight:bold">Status</span>
+    <div style="margin-left:25px;">{{ lead.status }}</div>
+<span style="font-weight:bold">Last Emailed</span>
+    <div style="margin-left:25px;">{{ lead.last_sent|datetime }}</div>
+<span style="font-weight:bold">Last Response</span>
+    <div style="margin-left:25px;">{{ lead.last_received|datetime }}</div>
+<span style="font-weight:bold">Lead Contact(s)</span>
+    <div style="margin-left:25px;">
+    {% for contact in lead.contacts %}
+    {{ contact.name }} &lt;<a href="mailto:{{ contact.email }}">{{ contact.email }}</a>&gt;<br />
+    {% endfor %}
+    </div>
+
+<h3>Comments</h3>
+<div class="row">
+    <div class="col-sm-5">
+        <div class="panel panel-default">
+            <div class="panel-body">
+                <textarea class="form-control" placeholder="Post a comment..."></textarea><br />
+                <button type="submit" class="btn btn-default">Submit</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% for comment in lead.comments|sort(attribute="timestamp") %}
+{% include "_comment.html" %}
+{% endfor %}
+
+{% endblock %}

@@ -1,25 +1,22 @@
 {% extends "designers-layout.html" %}
 
 {% block content %}
-
-
-<table id="sponsor-table" class="table table-striped advanced-table">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Designer Type</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for designer in designers|sort(attribute="name") %}
-        <tr style="text-align:center;">
-            <td style="text-align:left;"><a href="{{ url_for('designers.info', name=designer.name) }}">{{ designer.name }}</a></td>
-            <td>{% if designer.type %}{{ designer.type }}{% endif %}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-
-
+<div style="width:98%; padding-top:50px">
+    <table id="sponsor-table" class="table table-striped advanced-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Designer Type</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for designer in designers|sort(attribute="name") %}
+            <tr style="text-align:center;">
+                <td style="text-align:left;"><a href="{{ url_for('designers.info', name=designer.name) }}">{{ designer.name }}</a></td>
+                <td>{{ designer.type_name }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endblock %}

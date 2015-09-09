@@ -1,0 +1,22 @@
+{% for field in form %}
+<div class="form-group">
+    {% if field.type not in ("CSRFTokenField", "HiddenField") %}
+      {% if field.flags.required %}
+        {{ field.label(text=field.label.text ~ "*") }}<br />
+      {% else %}
+        {{ field.label }}<br />
+      {% endif %}
+    {% endif %}
+    
+    {% if field.type == "TextAreaField" %}
+      {{ field(class_="form-control", rows="5") }}
+    {% else %}
+      {{ field(class_="form-control") }}
+    {% endif %}
+    
+    {% for error in field.errors %}
+      <br />{{ error }}
+    {% endfor %}
+</div>
+{% endfor %}
+    

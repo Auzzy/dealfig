@@ -2,7 +2,7 @@
 
 {% block content %}
 {% macro create_contact(contact) %}
-<div class="entry input-group col-xs-3 inline">
+<div class="entry input-group inline">
     <input class="form-control" name="names" type="text" placeholder="Name" {% if contact %}value="{{ contact.name }}"{% endif %} />
     <input class="form-control" name="emails" type="text" placeholder="Email" {% if contact %}value="{{ contact.email}}"{% endif %} />
 	<span class="input-group-btn">
@@ -15,10 +15,10 @@
 </div>
 {% endmacro %}
 
-<div class="control-group" id="contacts" style="margin-left:10px;">
+<div class="control-group" id="contacts" style="width:30%">
     <div class="controls">
         <form role="form" autocomplete="off" method="POST">
-            {% include "render-form.html" %}
+            {% include "_render-form.html" %}
             
             <div id="input-container">
                 {% for contact in contacts %}
@@ -27,7 +27,10 @@
                 {{ create_contact() }}
             </div>
             <br />
-            <input type="submit" name="Save" value="Save" />
+            <button type="submit" class="btn btn-default">Save</button>
+            <a href="{% if name %}{{ url_for('designers.info', name=name) }}{% else %}{{ url_for('designers.all') }}{% endif %}">
+                <input type="button" class="btn btn-default" value="Cancel" />
+            </a>
         </form>
     </div>
 </div>

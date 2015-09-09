@@ -23,6 +23,9 @@ class Designer(db.Model):
     notes = db.Column(db.Text(), default="")
     homepage = db.Column(db.String(200))
     contacts = db.relationship("Contact", cascade="all, delete-orphan", passive_updates=False, backref="designer", lazy="dynamic")
+    leads = db.relationship("Lead", cascade="all, delete-orphan", passive_updates=False, backref="designer", lazy="dynamic")
+    
+    # Do I still want this?
     past_deals = db.relationship("PastDeal", cascade="all, delete-orphan", passive_updates=False, backref="designer", lazy="dynamic")
 
 class DesignerType(db.Model):
@@ -32,7 +35,8 @@ class DesignerType(db.Model):
 class Contact(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     designer_id = db.Column(db.Integer, db.ForeignKey('designer.id'))
-    email = db.Column(db.String(80))
+    lead_id = db.Column(db.Integer, db.ForeignKey('lead.id'))
+    email = db.Column(db.String(80), nullable=False)
     name = db.Column(db.String(40))
 
 class PastDeal(db.Model):
@@ -47,14 +51,21 @@ class PastDeal(db.Model):
 
 class Lead(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    status = db.Column(db.String(20))
-    notes = db.Column(db.Text())
-    emails = db.relationship("Email", cascade="all, delete-orphan", passive_updates=False, backref="lead", lazy="dynamic")
-    
-class Email(db.Model):
+    designer_id = db.Column(db.Integer, db.ForeignKey('designer.id'), nullable=False)
+    created = db.Column(db.DateTime(), default=datetime.datetime.now)
+    status = db.Column("status", db.String(50), nullable=False)
+    last_sent = db.Column(db.DateTime())
+    last_received = db.Column(db.DateTime())
+    comments = db.relationship("Comment", cascade="all, delete-orphan", passive_updates=False, backref="lead", lazy="dynamic")
+    contacts = db.relationship("Contact", cascade="all, delete-orphan", passive_updates=False, backref="lead", lazy="dynamic")
+
+class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    date = db.Column(db.DateTime())
-    notes = db.Column(db.Text())
+    lead_id = db.Column(db.Integer, db.ForeignKey('lead.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user = db.relationship("User")
+    timestamp = db.Column(db.DateTime(), nullable=False)
+    text = db.Column(db.Text(), nullable=False)
 
 
 class User(db.Model, UserMixin):
@@ -83,13 +94,6 @@ class UserAuth(db.Model, UserMixin):
     username = db.Column(db.String(50), nullable=False, unique=True)
     password = db.Column(db.String(255), nullable=False, default='')
     reset_password_token = db.Column(db.String(100), nullable=False, default='')
-    user = db.relationship('User', uselist=False, foreign_keys=user_id)
-
-@event.listens_for(User, 'load')
-def load_user(target, context):
-    # target.type = data.UserType[target.type_name] if target.type_name in data.UserType.__members__ else None
-    pass
-
 
 
 def password_validator(form, field):
