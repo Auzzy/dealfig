@@ -12,7 +12,7 @@
         <tbody>
             {% for designer in designers|sort(attribute="name") %}
             <tr style="text-align:center;">
-                <td style="text-align:left;"><a href="{{ url_for('designers.info', name=designer.name) }}">{{ designer.name }}</a></td>
+                <td style="text-align:left;"><a href="{{ url_for('designers.info', designer_name=designer.name) }}">{{ designer.name }}</a></td>
                 <td>{{ designer.type_name }}</td>
             </tr>
             {% endfor %}

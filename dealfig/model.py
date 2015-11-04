@@ -16,57 +16,105 @@ manager = Manager(app)
 manager.add_command('db', MigrateCommand)
 
 
+designers_to_contacts = db.Table('designers_to_contacts',
+    db.Column('designer_id', db.Integer, db.ForeignKey('designer.id')),
+    db.Column('contact_id', db.Integer, db.ForeignKey('contact.id'))
+)
+
+leads_to_contacts = db.Table('leads_to_contacts',
+    db.Column('lead_id', db.Integer, db.ForeignKey('lead.id')),
+    db.Column('contact_id', db.Integer, db.ForeignKey('contact.id'))
+)
+
+showcase_to_contacts = db.Table('showcase_to_contacts',
+    db.Column('showcase_id', db.Integer, db.ForeignKey('showcase.id')),
+    db.Column('contact_id', db.Integer, db.ForeignKey('contact.id'))
+)
+
 class Designer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True)
     type_name = db.Column("type", db.String(50), nullable=False)
     notes = db.Column(db.Text(), default="")
     homepage = db.Column(db.String(200))
-    contacts = db.relationship("Contact", cascade="all, delete-orphan", passive_updates=False, backref="designer", lazy="dynamic")
+    contacts = db.relationship("Contact", secondary=designers_to_contacts)
     leads = db.relationship("Lead", cascade="all, delete-orphan", passive_updates=False, backref="designer", lazy="dynamic")
+    showcase = db.relationship("Deal", uselist=False, backref="designer")
+
+class Lead(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    designer_id = db.Column(db.Integer, db.ForeignKey('designer.id'), nullable=False)
+    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    owner = db.relationship("User", backref="leads")
+    created = db.Column(db.DateTime(), default=datetime.datetime.now, nullable=False)
+    status = db.Column("status", db.String(50), nullable=False)
+    comments = db.relationship("Comment", cascade="all, delete-orphan", passive_updates=False, backref="lead", lazy="dynamic")
+    contacts = db.relationship("Contact", secondary=leads_to_contacts)
+    deal = db.relationship("Deal", uselist=False, backref="lead")
+
+class Deal(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    lead_id = db.Column(db.Integer, db.ForeignKey('lead.id'))
+    owner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    owner = db.relationship("User", backref="deals")
+    level = db.Column(db.String(30))
+    cash = db.Column(db.Integer, default=0)
+    inkind = db.Column(db.Integer, default=0)
+    notes = db.Column(db.Text())
+    contract = db.relationship("Contract", uselist=False, backref="deal")
+    invoice = db.relationship("Invoice", uselist=False, backref="deal")
     
-    # Do I still want this?
-    past_deals = db.relationship("PastDeal", cascade="all, delete-orphan", passive_updates=False, backref="designer", lazy="dynamic")
+    @property
+    def designer(self):
+        return self.lead.designer
+    
+    @property
+    def contract_signed(self):
+        return bool(self.contract.signed)
+    
+    @property
+    def invoice_paid(self):
+        return bool(self.invoice.paid)
+
+class Showcase(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    designer_id = db.Column(db.Integer, db.ForeignKey('designer.id'), nullable=False)
+    game_name = db.Column(db.String(160))
+    game_homepage = db.Column(db.String(200))
+    game_description = db.Column(db.Text())
 
 class DesignerType(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(30), unique=True)
 
+class LeadStatus(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(30), unique=True)
+    status_id = db.Column(db.Integer, db.ForeignKey('leadstatus.id'))
+    transitions = db.relationship("LeadStatus")
+
 class Contact(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    designer_id = db.Column(db.Integer, db.ForeignKey('designer.id'))
-    lead_id = db.Column(db.Integer, db.ForeignKey('lead.id'))
     email = db.Column(db.String(80), nullable=False)
     name = db.Column(db.String(40))
-
-class PastDeal(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    designer_id = db.Column(db.Integer, db.ForeignKey('designer.id'))
-    year = db.Column(db.Integer)
-    owner_name = db.Column(db.String(60))
-    level_name = db.Column(db.String(20))
-    cash = db.Column(db.Integer, default=0)
-    inkind = db.Column(db.Integer, default=0)
-
-
-class Lead(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    designer_id = db.Column(db.Integer, db.ForeignKey('designer.id'), nullable=False)
-    created = db.Column(db.DateTime(), default=datetime.datetime.now)
-    status = db.Column("status", db.String(50), nullable=False)
-    last_sent = db.Column(db.DateTime())
-    last_received = db.Column(db.DateTime())
-    comments = db.relationship("Comment", cascade="all, delete-orphan", passive_updates=False, backref="lead", lazy="dynamic")
-    contacts = db.relationship("Contact", cascade="all, delete-orphan", passive_updates=False, backref="lead", lazy="dynamic")
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     lead_id = db.Column(db.Integer, db.ForeignKey('lead.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     user = db.relationship("User")
-    timestamp = db.Column(db.DateTime(), nullable=False)
+    created = db.Column(db.DateTime(), nullable=False)
     text = db.Column(db.Text(), nullable=False)
 
+class Contract(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sent = db.Column(db.Date)
+    signed = db.Column(db.Date)
+
+class Invoice(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sent = db.Column(db.Date)
+    paid = db.Column(db.Date)
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)

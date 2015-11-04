@@ -1,0 +1,32 @@
+{% extends "deals-layout.html" %}
+
+{% block content %}
+<div style="width:98%; padding-top:50px">
+    <table id="sponsor-table" class="table table-striped advanced-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Owner</th>
+                <th>Level</th>
+                <th>Paid Invoice</th>
+                <th>Signed Contract</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for deal in deals %}
+            <tr>
+                <td><a href="{{ url_for('deals.info', designer=deal.designer.name) }}">{{ deal.designer.name }}</a></td>
+                <td>
+                    <a href="{{ url_for('users.info', username=deal.owner.user_auth.username) }}">
+                        {{ deal.owner.first_name }} {{ deal.owner.last_name }}
+                    </a>
+                </td>
+                <td>{{ deal.level }}</td>
+                <td>{% if deal.invoice_paid %}Yes{% else %}No{% endif %}</td>
+                <td>{% if deal.contract_signed %}Yes{% else %}No{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

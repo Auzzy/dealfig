@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
     {% block head %}
-    <title>{% block title %}{% endblock %}</title>
+    <title>{% block title %}DealFIGurator{% endblock %}</title>
     
     <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="//cdn.datatables.net/1.10.9/css/jquery.dataTables.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pikaday.css') }}">
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dealfig.css') }}">
     <style>{% block css %}{% endblock %}</style>
     
@@ -14,9 +14,23 @@
     <script src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
     <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
     <script src="//cdn.datatables.net/1.10.9/js/jquery.dataTables.js"></script>
-    <script src="{{ url_for('static', filename='js/pikaday.js') }}"></script>
+    <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+    <script src="{{ url_for('static', filename='js/jeditable.js') }}"></script>
     <script src="{{ url_for('static', filename='js/dealfig.js') }}"></script>
-    <script type="text/javascript">{% block js %}{% endblock %}</script>
+    
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type)) {
+                        xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token() }}");
+                    }
+                }
+            });
+    
+            {% block js %}{% endblock %}
+        });
+    </script>
     {% endblock %}
 </head>
 <body style="padding:10px;">

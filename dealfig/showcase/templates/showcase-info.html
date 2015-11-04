@@ -1,0 +1,33 @@
+{% extends "designers-layout.html" %}
+
+{% block content %}
+<h1>{{ showcase.designer.name }}</h1>
+
+<span style="font-weight:bold">Designer Type</span>
+    <div style="margin-left:25px;">{{ showcase.designer.type_name }}</div>
+<span style="font-weight:bold">Contact(s)</span>
+    <div style="margin-left:25px;">
+    {% for contact in showcase.designer.contacts %}
+    {{ contact.name }} &lt;<a href="mailto:{{ contact.email }}">{{ contact.email }}</a>&gt;<br />
+    {% endfor %}
+    </div>
+{% if showcase.designer.homepage %}
+<span style="font-weight:bold">Home Page</span>
+    <div style="margin-left:25px;"><a href="{{ showcase.designer.homepage }}" target="_blank">{{ showcase.designer.homepage }}</a></div>
+{% endif %}
+
+<h2>Game</h2>
+<span style="font-weight:bold">Name</span>
+    <div style="margin-left:25px;">{{ showcase.game_name }}</div>
+{% if showcase.game_description %}
+<span style="font-weight:bold">Description</span>
+    <div style="margin-left:25px; white-space:pre;">{{ showcase.game_description|escape }}</div>
+{% endif %}
+{% if showcase.game_homepage %}
+<span style="font-weight:bold">Home Page</span>
+    <div style="margin-left:25px;"><a href="{{ showcase.game_homepage }}" target="_blank">{{ showcase.game_homepage }}</a></div>
+{% endif %}
+<span style="font-weight:bold">Notes</span>
+    <div style="margin-left:25px; width:500px; white-space:pre;">{{ showcase.designer.notes|escape }}</div>
+
+{% endblock %}

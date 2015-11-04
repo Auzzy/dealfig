@@ -1,12 +1,10 @@
 {% extends "designers-layout.html" %}
 
-{% block title %}{{ designer.name }}{% endblock %}
-
 {% block content %}
 <h1>{{ designer.name }}</h1>
 
 <h2 style="display:inline;">Info</h2>
-&nbsp;&nbsp;<a href="{{ url_for('designers.configure', name=designer.name) }}"><img src="{{ url_for('static', filename='img/edit.png') }}" /></a>
+&nbsp;&nbsp;<a href="{{ url_for('designers.configure', designer_name=designer.name) }}"><img src="{{ url_for('static', filename='img/edit.png') }}" /></a>
 <br style="line-height:175%" />
 
 <span style="font-weight:bold">Designer Type</span>
@@ -22,8 +20,9 @@
     <div style="margin-left:25px;"><a href="{{ designer.homepage }}" target="_blank">{{ designer.homepage }}</a></div>
 {% endif %}
 <span style="font-weight:bold">Notes</span>
-    <div style="margin-left:25px; width:500px;">{{ designer.notes }}</div>
+    <div style="margin-left:25px; width:500px; white-space:pre;">{{ designer.notes|escape }}</div>
 
+{# I need some way to display past deals, but there won't be a past_deals attribute. #}
 {% if designer.past_deals %}
 <h2>Past Deals</h2>
 <div style="position:relative; left:30px;">

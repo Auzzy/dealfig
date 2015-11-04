@@ -15,7 +15,7 @@
                         {{ comment.user.first_name }} {{ comment.user.last_name }}
                     </a>
                 </strong>
-                <span class="text-muted">{{ comment.timestamp|date }} at {{ comment.timestamp|time }}</span>
+                <span class="text-muted">{{ comment.created|date }} at {{ comment.created|time }}</span>
             </div>
             <div class="panel-body">{{ comment.text }}</div>
         </div>

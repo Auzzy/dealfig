@@ -17,6 +17,7 @@
 
 <div class="control-group" id="contacts" style="width:30%">
     <div class="controls">
+        <!--<form role="form" autocomplete="off" method="POST" action="{{ url_for('designers.configure', designer_name=name) }}"> -->
         <form role="form" autocomplete="off" method="POST">
             {% include "_render-form.html" %}
             
@@ -28,7 +29,7 @@
             </div>
             <br />
             <button type="submit" class="btn btn-default">Save</button>
-            <a href="{% if name %}{{ url_for('designers.info', name=name) }}{% else %}{{ url_for('designers.all') }}{% endif %}">
+            <a href="{% if name %}{{ url_for('designers.info', designer_name=name) }}{% else %}{{ url_for('designers.all') }}{% endif %}">
                 <input type="button" class="btn btn-default" value="Cancel" />
             </a>
         </form>

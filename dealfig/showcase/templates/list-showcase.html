@@ -1,0 +1,24 @@
+{% extends "showcase-layout.html" %}
+
+{% block content %}
+<div style="width:98%; padding-top:50px">
+    <table id="sponsor-table" class="table table-striped advanced-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Designer Type</th>
+                <th>Game</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for showcase_designer in showcase|sort(attribute="designer.name") %}
+            <tr style="text-align:center;">
+                <td style="text-align:left;"><a href="{{ url_for('showcase.info', designer=showcase_designer.designer.name) }}">{{ showcase_designer.designer.name }}</a></td>
+                <td style="text-align:left;">{{ showcase_designer.designer.type_name }}</td>
+                <td style="text-align:left;">{{ showcase_designer.game_name }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

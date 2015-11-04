@@ -6,13 +6,19 @@
         <thead>
             <tr>
                 <th>Name</th>
+                <th>Owner</th>
                 <th>Status</th>
             </tr>
         </thead>
         <tbody>
             {% for lead in leads %}
             <tr>
-                <td><a href="{{ url_for('leads.info', name=lead.designer.name) }}">{{ lead.designer.name }}</a></td>
+                <td><a href="{{ url_for('leads.info', designer=lead.designer.name) }}">{{ lead.designer.name }}</a></td>
+                <td>
+                    <a href="{{ url_for('users.info', username=lead.owner.user_auth.username) }}">
+                        {{ lead.owner.first_name }} {{ lead.owner.last_name }}
+                    </a>
+                </td>
                 <td>{{ lead.status }}</td>
             </tr>
             {% endfor %}

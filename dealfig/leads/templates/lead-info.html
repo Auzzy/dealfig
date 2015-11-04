@@ -1,41 +1,65 @@
 {% extends "leads-layout.html" %}
 
-{% block title %}{{ lead.name }}{% endblock %}
-
 {% block content %}
-<h1>{{ lead.name }}</h1>
+<h1>Lead: {{ lead.designer.name }}</h1>
 
-<h2 style="display:inline;">Info</h2>
-&nbsp;&nbsp;<a href="{{ url_for('leads.configure', name=lead.name) }}"><img src="{{ url_for('static', filename='img/edit.png') }}" /></a>
-<br style="line-height:175%" />
-
-<span style="font-weight:bold">Status</span>
-    <div style="margin-left:25px;">{{ lead.status }}</div>
-<span style="font-weight:bold">Last Emailed</span>
-    <div style="margin-left:25px;">{{ lead.last_sent|datetime }}</div>
-<span style="font-weight:bold">Last Response</span>
-    <div style="margin-left:25px;">{{ lead.last_received|datetime }}</div>
-<span style="font-weight:bold">Lead Contact(s)</span>
-    <div style="margin-left:25px;">
+<div style="font-weight: bold;">Owner</div>
+    <span style="margin-left:25px;">
+        <a href="{{ url_for('users.info', username=lead.owner.user_auth.username) }}">
+            {{ lead.owner.first_name }} {{ lead.owner.last_name }}
+        </a>
+    </span>
+<div style="font-weight:bold">Status</div>
+    <span id="lead-status" style="margin-left:25px;">{{ lead.status }}</span>
+<div style="font-weight:bold">Lead Contact(s)</div>
+    <span style="margin-left:25px;">
     {% for contact in lead.contacts %}
     {{ contact.name }} &lt;<a href="mailto:{{ contact.email }}">{{ contact.email }}</a>&gt;<br />
     {% endfor %}
-    </div>
+    </span>
 
 <h3>Comments</h3>
 <div class="row">
     <div class="col-sm-5">
         <div class="panel panel-default">
             <div class="panel-body">
-                <textarea class="form-control" placeholder="Post a comment..."></textarea><br />
-                <button type="submit" class="btn btn-default">Submit</button>
+                <textarea id="new-comment" class="form-control" placeholder="Post a comment..."></textarea><br />
+                <button id="post-comment" type="submit" class="btn btn-default">Post</button>
             </div>
         </div>
     </div>
 </div>
 
-{% for comment in lead.comments|sort(attribute="timestamp") %}
+<div id="comments">
+{% for comment in lead.comments|sort(attribute="created") %}
 {% include "_comment.html" %}
 {% endfor %}
+</div>
 
+{% endblock %}
+
+{% block js %}
+$("#lead-status").editable("{{ url_for('leads.post_status', designer=lead.designer.name) }}", {
+    // data: "{'verbal':'Verbal Agreement', 'pulled': 'Pulled Out'}",
+    loadurl: "{{ url_for('leads.get_transitions') }}",
+    loadtype: "POST",
+    loaddata: function(value, settings) {
+        return {status: $("#lead-status").text()};
+    },
+    type: "select",
+    submit: "OK"
+});
+
+
+$("#post-comment").click(function() {
+    var newComment = $("#new-comment").val();
+    $.post("{{ url_for("leads.submit_comment", designer=lead.designer.name) }}", { commentText: newComment })
+        .done(function(data) {
+            $("#new-comment").val("");
+            $("#comments").prepend(data);
+        })
+        .fail(function( jqXHR, textStatus ) {
+            alert("Request failed: " + textStatus);
+        });
+});
 {% endblock %}
