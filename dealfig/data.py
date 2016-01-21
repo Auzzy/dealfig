@@ -2,6 +2,7 @@ import datetime
 
 # While testing, current_user is provided by a constant at the bottom of the page
 # from flask.ext.login import current_user
+from sqlalchemy import and_, not_, or_
 
 from dealfig import model
 
@@ -65,7 +66,6 @@ class Leads:
     @staticmethod
     def update_status(designer, status):
         Leads.get_by_designer(designer).status = status
-        return status
 
 class Comment:
     @staticmethod
@@ -105,6 +105,30 @@ class Showcase:
     def get_by_designer(name):
         return _ShowcaseData(_DesignerData(name))
 
+class Exhibitor:
+    @staticmethod
+    def get_all():
+        return [
+            Exhibitor.get_by_designer("Foo 1"),
+            Exhibitor.get_by_designer("Foo 4"),
+            Exhibitor.get_by_designer("Foo 9")
+        ]
+    
+    @staticmethod
+    def get_by_designer(name):
+        if name == "Foo 1":
+            return _ExhibitorData(_DesignerData(name), "bronze", "sponsor")
+        elif name == "Foo 4":
+            return _ExhibitorData(_DesignerData(name), "silver", "sponsor", [
+                _AssetData("logo.png", "logo", _FileFormatData("PNG", "png"), id=1),
+                _AssetData("foo.png", "image", _FileFormatData("PNG", "png"), _MediaTypeData("Newsletter", "Header"), id=2),
+                _AssetData("web.png", "image", _FileFormatData("PNG", "png"), _MediaTypeData("Newsletter"), id=3),
+                _AssetData("web.png", "logo", _FileFormatData("PNG", "png"), _MediaTypeData("Website"), id=5),
+                _AssetData("description", "text", _FileFormatData("text", "txt"), id=4)
+            ])
+        else:
+            return _ExhibitorData(_DesignerData(name), "showcase", "showcase")
+
 class Contract:
     @staticmethod
     def save_sent(deal, date):
@@ -127,6 +151,76 @@ class Invoice:
         deal.invoice.paid = date
         return deal.invoice
 
+class AssetDefinition:
+    @staticmethod
+    def get_by_level(level):
+        if level == "silver":
+            return [
+                _AssetDefinitionData("Newsletter Header", level, "image",
+                    [_FileFormatData("PNG", "png"), _FileFormatData("JPEG", "jpeg")],
+                    [_MediaTypeData("Newsletter", "Header")]
+                ),
+                _AssetDefinitionData("Website", level, "logo",
+                    [_FileFormatData("PNG", "png"), _FileFormatData("JPEG", "jpeg")],
+                    [_MediaTypeData("Website")]
+                ),
+                _AssetDefinitionData("Description", level, "text",
+                    [_FileFormatData("text", "txt")],
+                    [_MediaTypeData("Website")]
+                )
+            ]
+        else:
+            return [
+                _AssetDefinitionData("Logo", level, "logo",
+                    [_FileFormatData("PNG", "png")],
+                    [_MediaTypeData("Program"), _MediaTypeData("Newsletter"), _MediaTypeData("Website"), _MediaTypeData("Digital Guide")]
+                )
+            ]
+    
+    @staticmethod
+    def get_matches(asset_definition, assets):
+        '''
+        # base query
+        def_no_location = asset_definition.media_types.filter(model.MediaType.location == None)
+        def_with_location = asset_definition.media_types.filter(model.MediaType.location != None)
+        matching_assets = assets \
+            .filter(model.Asset.type == asset_definition.type) \
+            .filter(model.Asset.format.in_(asset_definition.formats)) \
+            .filter(or_(model.Asset.media_type == None,
+                model.Asset.media_type.name.in_(def_no_location.query(model.MediaType.name)),
+                model.Asset.media_type.in_(def_with_location),
+                _and(model.Asset.media_type.location == None, model.Asset.media_type.name.in_(def_with_location.query(model.MediaType.name)))
+            )) \
+        .all()
+        '''
+        '''
+        # splitting the table
+        def_no_location = asset_definition.media_types.filter(model.MediaType.location == None)
+        def_with_location = asset_definition.media_types.filter(model.MediaType.location != None)
+        matching_assets_query = \
+            _and(model.Asset.type == asset_definition.type,
+                model.Asset.format.in_(asset_definition.formats),
+                or_(model.Asset.media_type == None,
+                    model.Asset.media_type.name.in_(def_no_location.query(model.MediaType.name)),
+                    model.Asset.media_type.in_(def_with_location),
+                    _and(model.Asset.media_type.location == None,
+                        model.Asset.media_type.name.in_(def_with_location.query(model.MediaType.name)))
+                ))
+        matches = assets.filter(matching_assets_query).all()
+        unmatched_assets = assets.filter(not_(matching_assets_query)).all()
+        return matches, unmatched_assets
+        '''
+        matches = []
+        unmatched_assets = []
+        for asset in assets:
+            if asset.type == asset_definition.type:
+                matches.append(asset)
+            else:
+                unmatched_assets.append(asset)
+        return matches, unmatched_assets
+
+class Asset:
+    pass
 
 
 class DesignerTypes:
@@ -169,10 +263,12 @@ class LeadStatus:
 ##### Model Classes #####
 # These classes are serving the purpose of model classes during development
 
+import random
+
 class _DesignerData:
     def __init__(self, name):
+        self.id = random.randint(1, 100)
         self.name = name
-        self.id = 1
         self.type_name = "Digital"
         self.notes = "NOTES"
         self.homepage = "http://google.com"
@@ -182,7 +278,7 @@ class _DesignerData:
 
 class _LeadData:
     def __init__(self, designer, owner):
-        self.id = 1
+        self.id = random.randint(1, 100)
         self.designer = designer
         self.owner = owner
         self.created = datetime.datetime.now()
@@ -198,7 +294,7 @@ class _LeadData:
 
 class _DealData:
     def __init__(self, lead, owner=None):
-        self.id = 1
+        self.id = random.randint(1, 100)
         self.lead = lead
         self.owner = owner if owner else lead.owner
         self.level = "Copper"
@@ -226,15 +322,29 @@ class _ShowcaseData:
         self.game_name = "Test game NAME"
         self.game_homepage = "http://amazon.com"
         self.game_description = "Description\nof the game"
+    
+    @property
+    def level(self):
+        return "Showcase"
+
+class _ExhibitorData:
+    def __init__(self, designer, level, type, assets=[]):
+        self.designer = designer
+        self.level = level
+        self.type = type
+        self.assets = assets
+        
+        for asset in self.assets:
+            asset.exhibitor = self
 
 class _DesignerTypeData:
     def __init__(self, name):
-        self.id = 1
+        self.id = random.randint(1, 100)
         self.name = name
 
 class _LeadStatusData:
     def __init__(self, name, transitions=[]):
-        self.id = 1
+        self.id = random.randint(1, 100)
         self.name = name
         self.transitions = transitions
 
@@ -245,7 +355,7 @@ class _Contact:
 
 class _CommentData:
     def __init__(self, user, text, created=None):
-        self.id = 1
+        self.id = random.randint(1, 100)
         self.user = user
         self.user_id = self.user.id
         self.created = datetime.datetime.fromtimestamp(created) if created else datetime.datetime.now()
@@ -253,15 +363,58 @@ class _CommentData:
 
 class _ContractData:
     def __init__(self, sent=None, signed=None):
-        self.id = 1
+        self.id = random.randint(1, 100)
         self.sent = sent
         self.signed = signed
 
 class _InvoiceData:
     def __init__(self, sent=None, paid=None):
-        self.id = 1
+        self.id = random.randint(1, 100)
         self.sent = sent
         self.paid = paid
+
+class _AssetDefinitionData:
+    def __init__(self, name, level, type, formats, media_types):
+        self.id = random.randint(1, 100)
+        self.name = name
+        self.level = level
+        self.type = type # text or image
+        self.formats = formats
+        self.media_types = media_types
+
+class _FileFormatData:
+    def __init__(self, name, ext):
+        self.id = random.randint(1, 100)
+        self.name = name
+        self.ext = ext
+
+class _MediaTypeData:
+    def __init__(self, name, location=None):
+        self.id = random.randint(1, 100)
+        self.name = name
+        self.location = location
+    
+    @property
+    def display_name(self):
+        if self.location:
+            return "{} - {}".format(self.name, self.location)
+        else:
+            return self.name
+
+class _AssetData:
+    def __init__(self, filename, type, format, media_type=None, id=None):
+        self.id = id or random.randint(1, 100)
+        self.timestamp = datetime.datetime.now()
+        self.filename = filename
+        self.type = type
+        self.format = format
+        self.media_type = media_type
+    
+    def __hash__(self):
+        return self.id
+    
+    def __eq__(self, other):
+        return self.id == other.id
 
 class _UserData:
     def __init__(self, first_name, last_name, id=None):

@@ -31,6 +31,16 @@ showcase_to_contacts = db.Table('showcase_to_contacts',
     db.Column('contact_id', db.Integer, db.ForeignKey('contact.id'))
 )
 
+asset_definition_to_file_format = db.Table('asset_definition_to_file_format',
+    db.Column('asset_definition_id', db.Integer, db.ForeignKey('asset_definition.id')),
+    db.Column('file_format_id', db.Integer, db.ForeignKey('file_format.id'))
+)
+
+asset_definition_to_media_type = db.Table('asset_definition_to_media_type',
+    db.Column('asset_definition_id', db.Integer, db.ForeignKey('asset_definition.id')),
+    db.Column('media_type_id', db.Integer, db.ForeignKey('media_type.id'))
+)
+
 class Designer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True)
@@ -39,7 +49,8 @@ class Designer(db.Model):
     homepage = db.Column(db.String(200))
     contacts = db.relationship("Contact", secondary=designers_to_contacts)
     leads = db.relationship("Lead", cascade="all, delete-orphan", passive_updates=False, backref="designer", lazy="dynamic")
-    showcase = db.relationship("Deal", uselist=False, backref="designer")
+    showcase = db.relationship("Showcase", uselist=False, backref="designer")
+    exhibitor = db.relationship("Exhibitor", uselist=False, backref="designer")
 
 class Lead(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -83,6 +94,13 @@ class Showcase(db.Model):
     game_homepage = db.Column(db.String(200))
     game_description = db.Column(db.Text())
 
+class Exhibitor(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    designer_id = db.Column(db.Integer, db.ForeignKey('designer.id'), nullable=False)
+    level = db.Column(db.String(20))
+    type = db.Column(db.String(20))
+    assets = db.relationship("Asset", cascade="all, delete-orphan", passive_updates=False, backref="exhibitor", lazy="dynamic")
+
 class DesignerType(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(30), unique=True)
@@ -115,6 +133,42 @@ class Invoice(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sent = db.Column(db.Date)
     paid = db.Column(db.Date)
+
+class AssetDefinition(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    level = db.Column(db.String(20), nullable=False)
+    type = db.Column(db.String(20), nullable=False) # text, logo, or image
+    media_types = db.relationship("MediaType", secondary=asset_definition_to_media_type)
+    formats = db.relationship("FileFormat", secondary=asset_definition_to_file_format)
+
+class FileFormat(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(30))
+    ext = db.Column(db.String(10), unique=True)
+
+class MediaType(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False)
+    location = db.Column(db.String(50))
+    
+    @property
+    def display_name(self):
+        if self.location:
+            return "{} - {}".format(self.name, self.location)
+        else:
+            return self.name
+
+class Asset(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    exhibitor_id = db.Column(db.Integer, db.ForeignKey('exhibitor.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, nullable=False)
+    filename = db.Column(db.String(256), nullable=False)
+    type = db.Column(db.String(20), nullable=False) # text, logo, or image
+    media_type_id = db.Column(db.Integer, db.ForeignKey('media_type.id'))
+    media_type = db.relationship("MediaType") # A value of null indicates no restrictions on usage
+    format_id = db.Column(db.Integer, db.ForeignKey('file_format.id'), nullable=False)
+    format = db.relationship("FileFormat")
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)

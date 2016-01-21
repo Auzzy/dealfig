@@ -1,0 +1,48 @@
+{% extends "asset-tracker-layout.html" %}
+
+{% block content %}
+<h1>{{ exhibitor.designer.name }}</h1>
+
+<div style="font-weight: bold;">Level</div>
+    <span style="margin-left:25px;">{{ exhibitor.level }}</span>
+<div style="font-weight: bold;">Type</div>
+    <span style="margin-left:25px;">{{ exhibitor.type }}</span>
+
+<h2>Assets</h2>
+<h3>Collected</h3>
+<div id="collected-assets" style="float: left;">
+{% for asset_definition in asset_definition_matches %}
+    {% if asset_definition_matches[asset_definition] %}
+        <div class="asset-definition-container">
+        {% if asset_definition.type == "text" %}
+        
+        {% else %}
+            <p style="font-weight:bold;">{{ asset_definition.name }}</p>
+            {% for asset in asset_definition_matches[asset_definition] %}
+                <div id="collected-asset-{{ loop.index }}" style="float:left;">
+                    <a href="{{ get_asset_url(asset) }}" target="_blank"><img src="{{ get_thumb_url(asset) }}" alt="{{ asset.filename }}" /></a>
+                </div>
+                <div style="float:left;">&nbsp;&nbsp;&nbsp;&nbsp;</div>
+            {% endfor %}
+        {% endif %}
+        </div>
+    {% endif %}
+    <div style="clear:both;">&nbsp;</div>
+{% endfor %}
+</div>
+
+<div style="clear:both;">&nbsp;</div>
+
+<h3>Missing</h3>
+<div>
+{% for asset_definition in asset_definition_matches %}
+    {% if not asset_definition_matches[asset_definition] %}
+        <p style="font-weight:bold;">{{ asset_definition.name }}</p>
+        <p>Type: {{ asset_definition.type}}</p>
+        <p>Used in: {{ media_types_to_string(asset_definition.media_types) }} </p>
+        <p>File Formats: {{ file_formats_to_string(asset_definition.formats) }}</p>
+    {% endif %}
+{% endfor %}
+</div>
+
+{% endblock %}
