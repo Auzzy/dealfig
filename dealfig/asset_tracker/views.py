@@ -6,8 +6,9 @@ from dealfig import data
 from dealfig.asset_tracker import app
 
 @app.route("/")
-def all():
-    exhibitors = data.Exhibitor.get_all()
+@app.route("/list/<year>")
+def all(year=None):
+    exhibitors = data.Exhibitor.get_by_year(year)
     return render_template("list-exhibitors.html", exhibitors=exhibitors)
 
 @app.route("/<designer>")

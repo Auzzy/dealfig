@@ -1,0 +1,76 @@
+{% import 'modals.html' as modals %}
+
+<div style="font-weight: bold;">Designer Type</div>
+<button type="button" class="btn btn-default" data-toggle="modal" data-target="#{{ modals.modal_id('designer_type') }}" id="designer-type-display" style="min-width:100px; min-height: 30px;">
+    {{ designer.type }}
+</button>
+
+<div style="height: 10px;"></div>
+
+<div style="font-weight: bold;">Home page
+    <button type="button" class="btn btn-info btn-xs" data-toggle="modal" data-target="#{{ modals.modal_id('homepage') }}">
+        <span class="glyphicon glyphicon-pencil"></span> Edit 
+    </button>
+</div>
+<div style="margin-left:25px; min-height:1em;">
+    <a id="homepage-display" href="{{ designer.homepage }}" target="_blank">{{ designer.homepage }}</a>
+</div>
+
+<div style="height: 10px;"></div>
+
+<div style="font-weight: bold;">Notes
+    <button type="button" class="btn btn-info btn-xs" data-toggle="modal" data-target="#{{ modals.modal_id('notes') }}">
+        <span class="glyphicon glyphicon-pencil"></span> Edit 
+    </button>
+</div>
+<div id="notes-display" style="margin-left:25px; min-height:1em; white-space:pre;">{{ designer.notes|escape }}</div>
+
+<h3>This Year</h3>
+{% if not designer.active_deal and not designer.active_lead -%}
+<button id="create-lead" type="button" class="btn btn-primary">Create Lead</button>
+{%- endif %}
+{% if not designer.active_showcase -%}
+<button id="create-showcase" type="button" class="btn btn-primary">Create Showcase</button>
+{%- endif %}
+
+{% if designer.active_deal -%}
+<h4>Deal</h4>
+<a href="{{ url_for('deals.info', designer=designer.name) }}">Level: {{ designer.active_deal.level }}</a>
+{%- elif designer.active_lead -%}
+<h4>Lead</h4>
+<a href="{{ url_for('leads.info', designer=designer.name) }}">Status: {{ designer.active_lead.status }}</a>
+{%- endif %}
+
+{% if designer.active_showcase -%}
+<h4>Showcase</h4>
+<a href="{{ url_for('showcase.info', designer=designer.name) }}">Game Name: {{ designer.active_showcase.game_name }}</a>
+{%- endif %}
+
+<!-- Input modals -->
+<!-- Designer Type modal -->
+{{ modals.list_modal(modals.modal_id('designer_type'), "Designer Type", designer_types) }}
+<!-- Home Page modal -->
+{{ modals.textbox_modal(modals.modal_id('homepage'), "Home Page", designer.homepage, "url") }}
+<!-- Notes modal -->
+{{ modals.textarea_modal(modals.modal_id('notes'), "Notes", designer.notes) }}
+
+<script>
+$("#create-lead").click(function() {
+    $.post("{{ url_for('leads.create', designer=designer.name) }}")
+        .done(function(data) {
+            window.location.href = data;
+        });
+});
+
+$("#create-showcase").click(function() {
+    $.post("{{ url_for('showcase.create', designer=designer.name) }}")
+        .done(function(data) {
+            window.location.href = data;
+        });
+});
+
+// Modal JavaScript
+{{ modals.list_modal_js(modals.modal_id('designer_type'), url_for('designers.update_type', designer_name=designer.name), "designer-type-display")|safe }}
+{{ modals.textbox_modal_js(modals.modal_id('homepage'), url_for('designers.update_homepage', designer_name=designer.name), "homepage-display")|safe }}
+{{ modals.textarea_modal_js(modals.modal_id('notes'), url_for('designers.update_notes', designer_name=designer.name), "notes-display")|safe }}
+</script>

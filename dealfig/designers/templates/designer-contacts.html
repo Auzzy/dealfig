@@ -1,0 +1,59 @@
+{% import 'modals.html' as modals %}
+
+<button type="button" class="btn btn-default" data-toggle="modal" data-target="#{{ modals.modal_id('contact') }}">Add Contact...</button>
+
+<div style="height:20px;">&nbsp;</div>
+
+<table id="contact-table" class="table table-striped advanced-table" style="width:40%;">
+    <thead>
+        <tr>
+            <th style="min-width:50px;">Name</th>
+            <th style="min-width:50px;">Email</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for contact in designer.contacts|sort(attribute="name") %}
+        <tr>
+            <td>{{ contact.name }}</td>
+            <td>
+                <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
+                <div style="position:relative">
+                    <button type="button" class="btn btn-danger delete-contact" data-email="{{ contact.email }}">Delete</button>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% with %}
+{% set form_modal_body %}
+<input type="text" class="form-control" id="name_input" placeholder="Name" />
+<input type="email" class="form-control" id="email_input" placeholder="Email" />
+{% endset %}
+{{ modals.form_modal(modals.modal_id("contact"), "New Contact", form_modal_body) }}
+{% endwith %}
+
+<style>
+button.delete-contact {
+    position: absolute;
+    right: -80px;
+    top: -27px;
+}
+</style>
+
+<script>
+$(".delete-contact").click(function() {
+    var delete_button = this;
+    $.post("{{ url_for('designers.delete_contact', designer_name=designer.name) }}", {email: $(this).data("email")})
+        .done(function(data) {
+            $(delete_button).closest("tr").remove();
+        })
+        .fail(function(jqXHR, textStatus) {
+            alert("Request failed: " + textStatus);
+        });
+});
+
+{% set input_map = {"name": {"input": "#name_input"}, "email": {"input": "#email_input"}} %}
+{{ modals.form_modal_js(modals.modal_id("contact"), url_for('designers.add_contact', designer_name=designer.name), input_map, True)|safe }}
+</script>

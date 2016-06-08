@@ -1,7 +1,16 @@
 {% extends "designers-layout.html" %}
+{% import 'components.html' as components %}
+{% import 'modals.html' as modals %}
 
 {% block content %}
-<div style="width:98%; padding-top:50px">
+
+<div style="width:98%; padding-top:10px">&nbsp;</div>
+
+<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#{{ modals.modal_id('designer') }}">
+    New Designer...
+</button>
+
+<div style="width:98%; padding-top:30px">
     <table id="sponsor-table" class="table table-striped advanced-table">
         <thead>
             <tr>
@@ -13,10 +22,30 @@
             {% for designer in designers|sort(attribute="name") %}
             <tr style="text-align:center;">
                 <td style="text-align:left;"><a href="{{ url_for('designers.info', designer_name=designer.name) }}">{{ designer.name }}</a></td>
-                <td>{{ designer.type_name }}</td>
+                <td style="text-align:left;">{{ designer.type }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+
+{% with %}
+{% set form_modal_body %}
+<label for="name_input">Name</label>
+<input type="text" class="form-control" id="name_input" placeholder="Name" />
+<div style="min-height:10px;">&nbsp;</div>
+<label for="{{ components.list_group_id(modals.modal_id('designer')) }}">Designer Types</label>
+{{ components.list_group(modals.modal_id("designer"), designer_types) }}
+{% endset %}
+{{ modals.form_modal(modals.modal_id("designer"), "New Designer", form_modal_body) }}
+{% endwith %}
+{% endblock %}
+
+{% block js %}
+
+{{ components.radio_group(modals.modal_id("designer"))|safe }}
+
+{% set input_map = {"name": {"input": "#name_input"}, "designer_type": {"input": components.active_selector(modals.modal_id("designer"))}} %}
+{{ modals.form_modal_js(modals.modal_id("designer"), url_for('designers.new_designer'), input_map, True)|safe }}
+
 {% endblock %}

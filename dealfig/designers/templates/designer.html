@@ -1,0 +1,47 @@
+{% extends "designers-layout.html" %}
+
+{% block title %}Designer{% endblock %}
+
+{% block header %}<h1>{{ designer.name }}</h1>{% endblock %}
+
+{% block content %}
+<div>
+    <ul class="nav nav-tabs" role="tablist">
+        <li role="presentation" class="active"><a href="#details" aria-controls="details" role="tab" data-toggle="tab">Details</a></li>
+        <li role="presentation"><a href="#contacts" aria-controls="contacts" role="tab" data-toggle="tab">Contacts</a></li>
+        {% if designer.leads -%}
+        <li role="presentation"><a href="#leads" aria-controls="leads" role="tab" data-toggle="tab">Leads</a></li>
+        {%- endif %}
+        {% if designer.deals -%}
+        <li role="presentation"><a href="#deals" aria-controls="deals" role="tab" data-toggle="tab">Deals</a></li>
+        {%- endif %}
+    </ul>
+
+    <div class="tab-content">
+        <div role="tabpanel" class="tab-pane active" id="details">
+            <div style="height:20px;">&nbsp;</div>
+            
+            {% include "designer-details.html" %}
+        </div>
+        <div role="tabpanel" class="tab-pane" id="contacts">
+            <div style="height:20px;">&nbsp;</div>
+            
+            {% include "designer-contacts.html" %}
+        </div>
+        {% if designer.leads -%}
+        <div role="tabpanel" class="tab-pane" id="leads">
+            <div style="height:20px;">&nbsp;</div>
+            
+            {% include "designer-leads.html" %}
+        </div>
+        {%- endif %}
+        {% if designer.deals -%}
+        <div role="tabpanel" class="tab-pane" id="deals">
+            <div style="height:20px;">&nbsp;</div>
+            
+            {% include "designer-deals.html" %}
+        </div>
+        {%- endif %}
+    </div>
+</div>
+{% endblock %}

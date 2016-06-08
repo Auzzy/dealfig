@@ -15,11 +15,13 @@
             <tr>
                 <td><a href="{{ url_for('leads.info', designer=lead.designer.name) }}">{{ lead.designer.name }}</a></td>
                 <td>
-                    <a href="{{ url_for('users.info', username=lead.owner.user_auth.username) }}">
+                    {% if lead.owner %}
+                    <a href="{{ url_for('users.info', username=lead.owner.username) }}">
                         {{ lead.owner.first_name }} {{ lead.owner.last_name }}
                     </a>
+                    {% endif %}
                 </td>
-                <td>{{ lead.status }}</td>
+                <td>{{ lead.status.name }}</td>
             </tr>
             {% endfor %}
         </tbody>

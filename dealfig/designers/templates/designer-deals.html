@@ -1,0 +1,18 @@
+<table id="deals-table" class="table table-striped advanced-table" style="width:40%;">
+    <thead>
+        <tr>
+            <th style="min-width:50px;">Year</th>
+            <th style="min-width:50px;">Owner</th>
+            <th style="min-width:50px;">Level</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for deal in designer.deals|sort(True, attribute="year") %}
+        <tr>
+            <td><a href="{{ url_for('deals.info', designer=designer.name, year=deal.year) }}">{{ deal.year }}</a></td>
+            <td>{{ deal.owner }}</td>
+            <td>{{ deal.level }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

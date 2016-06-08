@@ -30,5 +30,4 @@ MAIL_PORT = 465
 MAIL_USE_SSL = True
 
 # Custom
-MIGRATIONS_DIRECTORY = "migrations"
 S3_BUCKET = os.environ.get("S3_BUCKET", "bfig-dealfigurator")

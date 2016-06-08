@@ -1,33 +1,44 @@
 {% extends "designers-layout.html" %}
+{% import 'modals.html' as modals %}
 
 {% block content %}
 <h1>{{ showcase.designer.name }}</h1>
 
-<span style="font-weight:bold">Designer Type</span>
-    <div style="margin-left:25px;">{{ showcase.designer.type_name }}</div>
-<span style="font-weight:bold">Contact(s)</span>
-    <div style="margin-left:25px;">
-    {% for contact in showcase.designer.contacts %}
-    {{ contact.name }} &lt;<a href="mailto:{{ contact.email }}">{{ contact.email }}</a>&gt;<br />
-    {% endfor %}
-    </div>
-{% if showcase.designer.homepage %}
-<span style="font-weight:bold">Home Page</span>
-    <div style="margin-left:25px;"><a href="{{ showcase.designer.homepage }}" target="_blank">{{ showcase.designer.homepage }}</a></div>
-{% endif %}
-
 <h2>Game</h2>
-<span style="font-weight:bold">Name</span>
-    <div style="margin-left:25px;">{{ showcase.game_name }}</div>
-{% if showcase.game_description %}
-<span style="font-weight:bold">Description</span>
-    <div style="margin-left:25px; white-space:pre;">{{ showcase.game_description|escape }}</div>
-{% endif %}
-{% if showcase.game_homepage %}
-<span style="font-weight:bold">Home Page</span>
-    <div style="margin-left:25px;"><a href="{{ showcase.game_homepage }}" target="_blank">{{ showcase.game_homepage }}</a></div>
-{% endif %}
-<span style="font-weight:bold">Notes</span>
-    <div style="margin-left:25px; width:500px; white-space:pre;">{{ showcase.designer.notes|escape }}</div>
+<div style="font-weight: bold;">Name
+    <button type="button" class="btn btn-info btn-xs" data-toggle="modal" data-target="#{{ modals.modal_id('name') }}">
+        <span class="glyphicon glyphicon-pencil"></span> Edit 
+    </button>
+</div>
+<div id="name-display" style="margin-left:25px; min-height:1em;">{{ showcase.game_name }}</div>
 
+<div style="height: 10px;"></div>
+
+<div style="font-weight: bold;">Home page
+    <button type="button" class="btn btn-info btn-xs" data-toggle="modal" data-target="#{{ modals.modal_id('homepage') }}">
+        <span class="glyphicon glyphicon-pencil"></span> Edit 
+    </button>
+</div>
+<div style="margin-left:25px; min-height:1em;">
+    <a id="homepage-display" href="{{ showcase.game_homepage }}" target="_blank">{{ showcase.game_homepage }}</a>
+</div>
+
+<div style="height: 10px;"></div>
+
+<div style="font-weight: bold;">Description
+    <button type="button" class="btn btn-info btn-xs" data-toggle="modal" data-target="#{{ modals.modal_id('description') }}">
+        <span class="glyphicon glyphicon-pencil"></span> Edit 
+    </button>
+</div>
+<div id="description-display" style="margin-left:25px; min-height:1em; white-space:pre;">{{ showcase.game_description }}</div>
+
+{{ modals.textbox_modal(modals.modal_id('name'), "Name", showcase.game_name) }}
+{{ modals.textbox_modal(modals.modal_id('homepage'), "Home Page", showcase.game_homepage, "url") }}
+{{ modals.textarea_modal(modals.modal_id('description'), "Description", showcase.game_description) }}
+{% endblock %}
+
+{% block js %}
+{{ modals.textbox_modal_js(modals.modal_id('name'), url_for('showcase.update_name', designer=showcase.designer.name), "name-display")|safe }}
+{{ modals.textbox_modal_js(modals.modal_id('homepage'), url_for('showcase.update_homepage', designer=showcase.designer.name), "homepage-display")|safe }}
+{{ modals.textarea_modal_js(modals.modal_id('description'), url_for('showcase.update_description', designer=showcase.designer.name), "description-display")|safe }}
 {% endblock %}

@@ -4,7 +4,7 @@
     {% block head %}
     <title>{% block title %}DealFIGurator{% endblock %}</title>
     
-    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
     <link rel="stylesheet" href="//cdn.datatables.net/1.10.9/css/jquery.dataTables.css">
     <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dealfig.css') }}">
@@ -12,10 +12,9 @@
     
     <script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
     <script src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
-    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
     <script src="//cdn.datatables.net/1.10.9/js/jquery.dataTables.js"></script>
     <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
-    <script src="{{ url_for('static', filename='js/jeditable.js') }}"></script>
     <script src="{{ url_for('static', filename='js/dealfig.js') }}"></script>
     
     <script type="text/javascript">
@@ -26,6 +25,17 @@
                         xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token() }}");
                     }
                 }
+            });
+            
+            // Enable direct linking to tab
+            var hash = document.location.hash;
+            if (hash) {
+                $('.nav-tabs a[href=' + hash + ']').tab('show');
+            }
+        
+            // Change URL on tab select
+            $('a[data-toggle="tab"]').on('show.bs.tab', function (e) {
+                window.location.hash = e.target.hash;
             });
     
             {% block js %}{% endblock %}

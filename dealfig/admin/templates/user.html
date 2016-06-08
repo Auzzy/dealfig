@@ -1,0 +1,41 @@
+{% extends "admin-layout.html" %}
+
+{% block title %}User{% endblock %}
+
+{% block header %}<h1>{{ user.username }}</h1>{% endblock %}
+
+{% block content %}
+<div>
+    <ul class="nav nav-tabs" role="tablist">
+        <li role="presentation" class="active"><a href="#details" aria-controls="details" role="tab" data-toggle="tab">Details</a></li>
+        <li role="presentation"><a href="#leads" aria-controls="leads" role="tab" data-toggle="tab">Leads</a></li>
+        <li role="presentation"><a href="#deals" aria-controls="deals" role="tab" data-toggle="tab">Deals</a></li>
+        <!-- <li role="presentation"><a href="#comments" aria-controls="comments" role="tab" data-toggle="tab">Comments</a></li> -->
+    </ul>
+
+    <div class="tab-content">
+        <div role="tabpanel" class="tab-pane active" id="details">
+            <div style="height:20px;">&nbsp;</div>
+            
+            {% include "user-details.html" %}
+        </div>
+        <div role="tabpanel" class="tab-pane" id="leads">
+            <div style="height:20px;">&nbsp;</div>
+            
+            {% include "user-leads.html" %}
+        </div>
+        <div role="tabpanel" class="tab-pane" id="deals">
+            <div style="height:20px;">&nbsp;</div>
+            
+            {% include "user-deals.html" %}
+        </div>
+        <!--
+        <div role="tabpanel" class="tab-pane" id="comments">
+            <div style="height:20px;">&nbsp;</div>
+            
+            {% include "user-comments.html" %}
+        </div>
+        -->
+    </div>
+</div>
+{% endblock %}

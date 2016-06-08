@@ -17,11 +17,13 @@
             <tr>
                 <td><a href="{{ url_for('deals.info', designer=deal.designer.name) }}">{{ deal.designer.name }}</a></td>
                 <td>
-                    <a href="{{ url_for('users.info', username=deal.owner.user_auth.username) }}">
+                    {% if deal.owner %}
+                    <a href="{{ url_for('users.info', username=deal.owner.username) }}">
                         {{ deal.owner.first_name }} {{ deal.owner.last_name }}
                     </a>
+                    {% endif %}
                 </td>
-                <td>{{ deal.level }}</td>
+                <td>{{ deal.level.name }}</td>
                 <td>{% if deal.invoice_paid %}Yes{% else %}No{% endif %}</td>
                 <td>{% if deal.contract_signed %}Yes{% else %}No{% endif %}</td>
             </tr>

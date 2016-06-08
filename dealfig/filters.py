@@ -2,26 +2,27 @@ import pytz
 
 from dealfig.app import app
 
-_DATE_FORMAT = "%b %d"
-_TIME_FORMAT = "%I:%M %p"
-_DATETIME_FORMAT = _DATE_FORMAT + _TIME_FORMAT
+_DATE_FORMAT = "%m/%d/%Y"
+_COMMENT_DATE_FORMAT = "%b %d"
+_COMMENT_TIME_FORMAT = "%I:%M %p"
 
-def _datetimefilter(value, format):
-    localized_datetime = pytz.utc.localize(value)
-    return localized_datetime.astimezone(pytz.timezone("US/Eastern")).strftime(format)
+@app.template_filter("localize_datetime")
+def localize_datetime_filter(value):
+    return pytz.utc.localize(value).astimezone(pytz.timezone("US/Eastern"))
 
-@app.template_filter()
-def datetimefilter(value, format=_DATETIME_FORMAT):
-    return _datetimefilter(value, format)
+@app.template_filter("comment_datetime")
+def comment_datetime_filter(value):
+    comment_datetime = localize_datetime_filter(value)
+    comment_date_str = comment_datetime.strftime(_COMMENT_DATE_FORMAT)
+    comment_time_str = comment_datetime.strftime(_COMMENT_TIME_FORMAT)
+    return "{} at {}".format(comment_date_str, comment_time_str)
 
-@app.template_filter()
-def datefilter(value, format=_DATE_FORMAT):
-    return _datetimefilter(value, format)
+@app.template_filter("date")
+def date_filter(value):
+    return value.strftime(_DATE_FORMAT)
 
-@app.template_filter()
-def timefilter(value, format=_TIME_FORMAT):
-    return _datetimefilter(value, format)
-
-app.jinja_env.filters['datetime'] = datetimefilter
-app.jinja_env.filters['date'] = datefilter
-app.jinja_env.filters['time'] = timefilter
+'''
+app.jinja_env.filters["localize_datetime"] = localize_datetime_filter
+app.jinja_env.filters["comment_datetime"] = comment_datetime_filter
+app.jinja.env.filters["date"] = date_filter
+'''

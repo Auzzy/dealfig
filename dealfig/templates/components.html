@@ -1,0 +1,45 @@
+{% import 'modals.html' as modals %}
+
+{% macro list_group(id, values) %}
+<div class="list-group" id="{{ list_group_id(id) }}">
+    {% for value in values %}
+    <button type="button" class="btn list-group-item {{ modals.modal_trigger_class(id) }}" value="{{ value.key or value }}" data-dismiss="modal">
+        {{ value }}
+    </button>
+    {% endfor %}
+</div>
+{% endmacro %}
+
+{# Component JS #}
+{# Turn a list_group into a select control (like checkboxes) by disabling the
+dismiss modal option and adding toggling #}
+{% macro select_group(id) %}
+$(".{{ modals.modal_trigger_class(id) }}").removeData("dismiss");
+$(".{{ modals.modal_trigger_class(id) }}").removeAttr("data-dismiss");
+$(".{{ modals.modal_trigger_class(id) }}").addClass("btn");
+$("#{{ list_group_id(id) }}").children(":button").click(function() {
+    if ($(this).hasClass("active")) {
+        $(this).removeClass("active");
+    } else {
+        $(this).addClass("active");
+    }
+});
+{% endmacro %}
+
+{# Turns a list_group into a radio group #}
+{% macro radio_group(id) %}
+{{ select_group(id)|safe }}
+$(".{{ modals.modal_trigger_class(id) }}").click(function() {
+    $(".{{ modals.modal_trigger_class(id) }}.active").not(this).removeClass("active");
+});
+{% endmacro %}
+
+
+{# Component IDs #}
+{%- macro list_group_id(id) -%}
+{{ id }}-list-group
+{%- endmacro -%}
+
+{%- macro active_selector(id) -%}
+.{{ modals.modal_trigger_class(id) }}.active
+{%- endmacro -%}

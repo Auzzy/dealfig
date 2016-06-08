@@ -5,8 +5,8 @@ from dealfig import app
 _ASSET_DIR = "assets"
 _THUMBNAIL_DIR = "thumbnails"
 
-_S3CONN = boto.connect_s3()
-_BUCKET = _S3CONN.get_bucket(app.config["S3_BUCKET"])
+# _S3CONN = boto.connect_s3()
+# _BUCKET = _S3CONN.get_bucket(app.config["S3_BUCKET"])
 
 
 def _s3key(designer, folder, filename):

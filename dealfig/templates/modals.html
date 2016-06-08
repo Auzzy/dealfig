@@ -1,0 +1,198 @@
+{% import 'components.html' as components %}
+
+{% set EMAIL_RE = "^\S+@\S+\.\S+$" %}
+{% set URL_RE = "^(\w+:\/\/)?\S+\.\S+$" %}
+
+{# Base modal #}
+{% macro modal(id, title, body, footer=None) %}
+<div id="{{ id }}" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">{{ title }}</h4>
+            </div>
+            <div class="modal-body">
+                {{ body|safe }}
+            </div>
+            {% if footer -%}
+            <div class="modal-footer">
+                {{ footer|safe }}
+            </div>
+            {%- endif %}
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+{# Modal for presenting a list of choices as clickable buttons #}
+{% macro list_modal(id, title, values) %}
+{% set modal_body = components.list_group(id, values)|safe %}
+{{ modal(id, title, modal_body) }}
+{% endmacro %}
+
+
+{# Modal for presenting multiple inputs #}
+{% macro form_modal(id, title, form_body) %}
+{% set modal_footer %}
+<div style="height:10px;">&nbsp;</div>
+<button type="button" class="btn btn-primary" id="{{ modal_save_id(id) }}">Save</button>
+<button type="button" class="btn btn-default" id="{{ modal_cancel_id(id) }}" data-dismiss="modal" aria-label="Close">Cancel</button>
+{% endset %}
+{{ modal(id, title, form_body, modal_footer) }}
+{% endmacro %}
+
+{# Modal for entering text via a text box #}
+{% macro textbox_modal(id, title, default, type='text') %}
+{%- if type == "email" -%}
+{% set title = "Email Address" %}
+{% set pattern = EMAIL_RE %}
+{%- elif type == "url" -%}
+{% set title = "Web Page" %}
+{% set pattern = URL_RE %}
+{%- endif -%}
+{% set form_body %}
+<input id="{{ modal_textbox_id(id) }}" type="{{ type }}" class="form-control" value="{{ default }}" {% if title and pattern %}pattern="{{ pattern }}" title="{{ title }}"{% endif %} />
+{% endset %}
+{{ form_modal(id, title, form_body) }}
+{% endmacro %}
+
+{# Modal for entering text via a teaxarea #}
+{% macro textarea_modal(id, title, default) %}
+{% set form_body %}
+<textarea id="{{ modal_textarea_id(id) }}" class="form-control" rows="6" style="resize:vertical;">{{ default }}</textarea>
+{% endset %}
+{{ form_modal(id, title, form_body) }}
+{% endmacro %}
+
+
+{# Modal JavaScript #}
+{#
+JavaScript supporting list_modal. Upon clicking an option, posts its value to the provided
+endpoint, then displays the response as text in the element indicated by display_id.
+#}
+{% macro list_modal_js(id, post_url, display_id) %}
+$(".{{ modal_trigger_class(id) }}").click(function() {
+    $.post("{{ post_url }}", { "value": $(this).val()})
+        .done(function(data) {
+            $("#{{ display_id }}").text(data);
+        });
+});
+{% endmacro %}
+
+{#
+JavaScript supporting a generic form_modal. Gathers all input values upon clicking Save, POSTs
+them, then displays the result.
+
+The selector_map maps a value's name to a selector to retrieve its value ("input") and a selector
+to display the result returned from the server ("display"). Every value must have an input selector;
+display selectors are optional.
+
+When Save is clicked, val() is run on each input selector ("input" in each dict element in
+selector_map). These values are POSTed to the provided URL, using the element's key as its name.
+Upon return from the server, what happens next depends on the redirect value.
+
+If redirect is True and the value returned from the server is a URL, the user will be redirected to
+that URL; if the value returned from the server isn't a URL, it's ignored, and the page is
+refreshed.
+
+If redirect is False, the text of each value's display selector is updated with the corresponding
+value returned from the server. If the value is to be displayed as a link, the display element's
+href attribute is also updated. If no display selector is provided for a value, or if no data was
+returned from the server for this value, it's display will not be updated.
+#}
+{% macro form_modal_js(id, post_url, selector_map, redirect=False) %}
+{% with save_id = modal_save_id(id), cancel_id = modal_cancel_id(id)%}
+$("#{{ save_id }}").click(function() {
+    $("#{{ save_id }}").attr("disabled", "disabled");
+    $("#{{ cancel_id }}").attr("disabled", "disabled");
+    
+    var inputObj = {};
+    {% for name,selectors in selector_map.items() -%}
+    var value_{{ name }} = process_value($("{{ selectors["input"] }}").val(), $("{{ selectors["input"] }}").attr("type"));
+    if (value_{{ name }} != null) {
+        inputObj.{{ name }} = value_{{ name }};
+    }
+    {%- endfor %}
+    $.post("{{ post_url }}", inputObj)
+        .done(function(data) {
+            {% if redirect %}
+            var redirect_url = process_uri(data);
+            if (redirect_url === null) {
+                window.location.reload();
+            } else {
+                window.location.href = redirect_url;
+            }
+            {% else %}
+            {%- for name,selectors in selector_map.items() %}
+            {%- if selectors.get('display') -%}
+            if (data.hasOwnProperty("{{ name }}")) {
+                var display_{{ name }} = $("{{ selectors['display'] }}");
+                var display_value_{{ name }} = process_value(data["{{ name }}"], $("{{ selectors['input'] }}").attr("type"));
+                if (display_{{ name }}.is("a")) {
+                    var href = $("{{ selectors['input'] }}").attr("type") === "email" ? ("mailto:" + display_value_{{ name }}) : display_value_{{ name }};
+                    display_{{ name }}.attr("href", href);
+                }
+                display_{{ name }}.text(display_value_{{ name }});
+                $("{{ selectors['input'] }}").val(display_value_{{ name }});
+            }
+            {%- endif -%}
+            {%- endfor %}
+            {% endif %}
+        })
+        .always(function() {
+            $("#{{ id }}").modal("hide");
+            $("#{{ save_id }}").removeAttr("disabled");
+            $("#{{ cancel_id }}").removeAttr("disabled");
+        });
+});
+{% endwith %}
+{% endmacro %}
+
+{#
+JavaScript supporting textbox_modal. Upon clicking the Save button, disables the Save and Cancel
+buttons, then posts the entered text to the provided endpoint, and finally displays the response as
+text in the element with the id display_id.
+#}
+{% macro textbox_modal_js(id, post_url, display_id) %}
+{% with input_map = {"value": {"input": "#" ~ modal_textbox_id(id), "display": "#" ~ display_id}} %}
+{{ form_modal_js(id, post_url, input_map, False) }}
+{% endwith %}
+{% endmacro %}
+
+{#
+JavaScript supporting textarea_modal. Upon clicking the Save button, disables the Save and Cancel
+buttons, then posts the entered text to the provided endpoint, and finally displays the response as
+text in the element with the id display_id.
+#}
+{% macro textarea_modal_js(id, post_url, display_id) %}
+{% with input_map = {"value": {"input": "#" ~ modal_textarea_id(id), "display": "#" ~ display_id}} %}
+{{ form_modal_js(id, post_url, input_map, False) }}
+{% endwith %}
+{% endmacro %}
+
+
+{# Modal IDs #}
+{%- macro modal_id(name) -%}
+{{ name }}-modal
+{%- endmacro -%}
+
+{%- macro modal_trigger_class(id) -%}
+new-{{ id }}
+{%- endmacro -%}
+
+{%- macro modal_save_id(id) -%}
+{{ id }}-save
+{%- endmacro -%}
+
+{%- macro modal_cancel_id(id) -%}
+{{ id }}-cancel
+{%- endmacro -%}
+
+{%- macro modal_textarea_id(id) -%}
+{{ id }}-textarea
+{%- endmacro -%}
+
+{%- macro modal_textbox_id(id) -%}
+{{ id }}-textbox
+{%- endmacro -%}

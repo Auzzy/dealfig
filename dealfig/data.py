@@ -1,4 +1,7 @@
 import datetime
+import random
+import string
+from enum import Enum
 
 # While testing, current_user is provided by a constant at the bottom of the page
 # from flask.ext.login import current_user
@@ -6,108 +9,294 @@ from sqlalchemy import and_, not_, or_
 
 from dealfig import model
 
-
-##### NOTES #####
-# When querying for a Lead by name, it should return the most recent Lead. Older Leads can be retrieved by providing the year
-# Lead.status will be some sort of state machine. I don't know how I'm going to re[present it yet, but it's gonna be hard coded - no configuration through the web page
-
-
 class Designers:
     @staticmethod
     def get_all():
-        # return model.Designer.all()
-        return [
-            _DesignerData("Foo 1"),
-            _DesignerData("Foo 2"),
-            _DesignerData("Foo 3"),
-            _DesignerData("Foo 4"),
-            _DesignerData("Foo 5"),
-            _DesignerData("Foo 6"),
-            _DesignerData("Foo 7"),
-            _DesignerData("Foo 8"),
-            _DesignerData("Foo 9"),
-            _DesignerData("Foo 10"),
-            _DesignerData("Foo 11"),
-            _DesignerData("Foo 12"),
-            _DesignerData("Foo 13")
-        ]
+        return model.Designer.query.all()
     
     @staticmethod
     def get_by_name(name):
-        # return model.Designer.query.filter_by(name=name).one()
-        return _DesignerData(name)
+        return model.Designer.query.filter_by(name=name).first()
     
     @staticmethod
-    def save(name, form, contacts):
-        return _DesignerData(name)
+    def get_or_create(name, type_name):
+        designer = Designers.get_by_name(name)
+        if designer:
+            return designer
+        else:
+            designer_type = DesignerTypes.get(type_name)
+            designer = model.Designer(name=name, type=designer_type)
+            model.db.session.add(designer)
+            model.db.session.commit()
+            return designer
+    
+    @staticmethod
+    def new(name, type_name):
+        return data.Designers.get_or_create(name, type_name)
+    
+    @staticmethod
+    def update_type(name, designer_type):
+        designer = Designers.get_by_name(name)
+        designer.type = DesignerTypes.get(designer_type)
+        model.db.session.commit()
+        return str(designer.type)
+    
+    @staticmethod
+    def update_homepage(name, homepage):
+        designer = Designers.get_by_name(name)
+        designer.homepage = homepage
+        model.db.session.commit()
+        return designer.homepage
+
+    @staticmethod
+    def update_notes(name, notes):
+        designer = Designers.get_by_name(name)
+        designer.notes = notes
+        model.db.session.commit()
+        return designer.notes
+    
+    @staticmethod
+    def add_contact(name, contact_name, contact_email):
+        designer = Designers.get_by_name(name)
+        contact = Contacts.save(contact_name, contact_email)
+        designer.contacts.append(contact)
+        model.db.session.commit()
+        return contact
+    
+    @staticmethod
+    def delete_contact(name, contact_email):
+        designer = Designers.get_by_name(name)
+        contact = designer.contacts.filter_by(email=contact_email).one()
+        designer.contacts.remove(contact)
+        model.db.session.commit()
+        return contact.email
 
 class Leads:
     @staticmethod
-    def get_statuses():
-        pass
-    
-    @staticmethod
     def get_all():
-        # return model.Lead.all()
-        return [
-            _LeadData(_DesignerData("Foo 1"), _UserData("Foo", "Bar")),
-            _LeadData(_DesignerData("Foo 4"), _UserData("Baz", "Bar")),
-            _LeadData(_DesignerData("Foo 5"), _UserData("Foo", "Bat")),
-            _LeadData(_DesignerData("Foo 7"), _UserData("Foo", "Baz")),
-            _LeadData(_DesignerData("Foo 10"), _UserData("Qux", "Bar")),
-            _LeadData(_DesignerData("Foo 13"), _UserData("Foo", "Bar"))
-        ]
-    
-    @staticmethod
-    def get_by_designer(name):
-        # return model.Lead.query.filter_by(name=name).one()
-        return _LeadData(_DesignerData(name), _UserData("Test", "Owner"))
-    
-    @staticmethod
-    def update_status(designer, status):
-        Leads.get_by_designer(designer).status = status
+        return model.Lead.query.all()
 
-class Comment:
     @staticmethod
-    def submit(lead, text, user=None):
+    def _get(designer, year=None):
+        if not designer:
+            return None
+
+        year = year or datetime.datetime.today().year
+        return model.Lead.query.filter_by(designer_id=designer.id, year=year).first()
+    
+    @staticmethod
+    def get_by_designer(designer_name, year=None):
+        designer = Designers.get_by_name(designer_name)
+        return Leads._get(designer, year)
+    
+    @staticmethod
+    def get_by_year(year=None):
+        year = year or datetime.datetime.today().year
+        return model.Lead.query.filter_by(year=year).all()
+
+    @staticmethod
+    def get_or_create(designer_name, year=None):
+        designer = Designers.get_by_name(designer_name)
+        lead = Leads._get(designer, year)
+        if lead:
+            return lead
+        else:
+            lead = model.Lead(year=datetime.datetime.today().year, status=LeadStatus.get_initial())
+            designer.leads.append(lead)
+            model.db.session.commit()
+            return lead
+    
+    @staticmethod
+    def update_status(designer_name, status_name):
+        lead = Leads.get_by_designer(designer_name)
+        status = LeadStatus.get(status_name)
+        if status not in lead.status.transitions:
+            return lead.status
+        lead.status = status
+        model.db.session.commit()
+        return status
+    
+    @staticmethod
+    def update_owner(designer_name, owner_username):
+        lead = Leads.get_by_designer(designer_name)
+        lead.owner = Users.get_by_username(owner_username)
+        model.db.session.commit()
+        return str(lead.owner)
+
+class Comments:
+    @staticmethod
+    def create(designer_name, text, user=None):
+        lead = Leads.get_by_designer(designer_name)
         user = user or current_user
-        comment = _CommentData(user, text)
+        comment = model.Comment(user_id=user.id, text=text, created=datetime.datetime.now())
         lead.comments.append(comment)
+        model.db.session.commit()
         return comment
 
 class Deals:
     @staticmethod
-    def get_all():
-        # return model.Deal.all()
-        return [
-            _DealData(_LeadData(_DesignerData("Foo 1"), _UserData("Foo", "Bar"))),
-            _DealData(_LeadData(_DesignerData("Foo 5"), _UserData("Foo", "Bat")), _UserData("Diff", "Owner")),
-            _DealData(_LeadData(_DesignerData("Foo 10"), _UserData("Qux", "Bar")))
-        ]
+    def get_by_designer(name, year=None):
+        lead = Leads.get_by_designer(name, year)
+        if not lead:
+            return None
+        return lead.deal
     
     @staticmethod
-    def get_by_designer(name):
-        # return model.Deal.query.filter_by(name=name).one()
-        return _DealData(_LeadData(_DesignerData(name), _UserData("Test", "Designer")))
+    def get_by_year(year=None):
+        year = year or datetime.datetime.today().year
+        return model.Deal.query.filter(model.Deal.lead_id == model.Lead.id and model.Lead.year == year).all()
+    
+    @staticmethod
+    def get_or_create(designer, year=None):
+        lead = Leads.get_by_designer(designer, year)
+        if not lead:
+            return None
 
-class Showcase:
-    @staticmethod
-    def get_all():
-        return [
-            _ShowcaseData(_DesignerData("Foo 2")),
-            _ShowcaseData(_DesignerData("Foo 6")),
-            _ShowcaseData(_DesignerData("Foo 9")),
-            _ShowcaseData(_DesignerData("Foo 11")),
-            _ShowcaseData(_DesignerData("Foo 12"))
-        ]
+        deal = lead.deal
+        if deal:
+            return deal
+        else:
+            lead.deal = Deals.create()
+            model.db.session.commit()
+            return deal
     
     @staticmethod
-    def get_by_designer(name):
-        return _ShowcaseData(_DesignerData(name))
+    def create():
+        deal = model.Deal()
+        deal.contract = model.Contract()
+        deal.invoice = model.Invoice()
+        model.db.session.add(deal)
+        model.db.session.commit()
+        return deal
+    
+    @staticmethod
+    def get_all():
+        return model.Deal.query.all()
+
+    @staticmethod
+    def update_owner(designer_name, owner_username):
+        deal = Deals.get_by_designer(designer_name)
+        if not deal:
+            return ""
+        
+        deal.owner = Users.get_by_username(owner_username)
+        model.db.session.commit()
+        return str(deal.owner)
+
+    @staticmethod
+    def update_level(designer_name, level_name):
+        deal = Deals.get_by_designer(designer_name)
+        if not deal:
+            return ""
+        
+        deal.level = DealLevels.get(level_name)
+        model.db.session.commit()
+        return str(deal.level)
+
+    @staticmethod
+    def update_cash(designer_name, cash):
+        deal = Deals.get_by_designer(designer_name)
+        if not deal:
+            return ""
+        
+        deal.cash = int(cash)
+        model.db.session.commit()
+        return str(deal.cash)
+
+    @staticmethod
+    def update_inkind(designer_name, inkind):
+        deal = Deals.get_by_designer(designer_name)
+        if not deal:
+            return ""
+        
+        deal.inkind = inkind
+        model.db.session.commit()
+        return deal.inkind
+
+    @staticmethod
+    def update_notes(designer_name, notes):
+        deal = Deals.get_by_designer(designer_name)
+        if not deal:
+            return ""
+        
+        deal.notes = notes
+        model.db.session.commit()
+        return deal.notes
+
+class Showcases:
+    @staticmethod
+    def _get(designer, year=None):
+        if not designer:
+            return None
+
+        year = datetime.datetime.today().year
+        return model.Showcase.query.filter_by(designer_id=designer.id).first()
+    
+    @staticmethod
+    def get_all():
+        return model.Showcase.query.all()
+
+    @staticmethod
+    def get_by_year(year=None):
+        year = year or datetime.datetime.today().year
+        return model.Showcase.query.filter_by(year=year)
+    
+    @staticmethod
+    def get_by_designer(designer_name, year=None):
+        designer = Designers.get_by_name(designer_name)
+        return Showcases._get(designer, year)
+    
+    @staticmethod
+    def get_or_create(designer_name):
+        designer = Designers.get_by_name(designer_name)
+        showcase = Showcases._get(designer)
+        if showcase:
+            return showcase
+        else:
+            showcase = model.Showcase(year=datetime.datetime.today().year)
+            designer.showcase = showcase
+            model.db.session.commit()
+            return showcase
+
+    def update_name(designer_name, game_name):
+        showcase = Showcases.get_by_designer(designer_name)
+        if not showcase:
+            return ""
+        
+        showcase.game_name = game_name
+        model.db.session.commit()
+        return str(showcase.game_name)
+    
+    @staticmethod
+    def update_homepage(designer_name, homepage):
+        showcase = Showcases.get_by_designer(designer_name)
+        if not showcase:
+            return ""
+
+        showcase.game_homepage = homepage
+        model.db.session.commit()
+        return showcase.game_homepage
+
+    def update_description(designer, description):
+        showcase = Showcases.get_by_designer(designer)
+        if not showcase:
+            return ""
+        
+        showcase.game_description = description
+        model.db.session.commit()
+        return str(showcase.game_description)
 
 class Exhibitor:
     @staticmethod
     def get_all():
+        return [
+            Exhibitor.get_by_designer("Foo 1"),
+            Exhibitor.get_by_designer("Foo 4"),
+            Exhibitor.get_by_designer("Foo 9")
+        ]
+    
+    @staticmethod
+    def get_by_year(year=None):
         return [
             Exhibitor.get_by_designer("Foo 1"),
             Exhibitor.get_by_designer("Foo 4"),
@@ -129,27 +318,55 @@ class Exhibitor:
         else:
             return _ExhibitorData(_DesignerData(name), "showcase", "showcase")
 
-class Contract:
+class Contacts:
     @staticmethod
-    def save_sent(deal, date):
-        deal.contract.sent = date
-        return deal.contract
+    def get_by_email(email):
+        return model.Contact.query.filter_by(email=email).first()
     
     @staticmethod
-    def save_signed(deal, date):
+    def get_or_create(name, email):
+        contact = Contacts.get_by_email(email)
+        if contact:
+            contact.name = name
+        else:
+            contact = model.Contact(name=name, email=email)
+            model.db.session.add(contact)
+        model.db.session.commit()
+        return contact
+    
+    @staticmethod
+    def save(name, email):
+        return Contacts.get_or_create(name, email)
+
+class Contract:
+    @staticmethod
+    def save_sent(designer, date):
+        deal = Deals.get_by_designer(designer)
+        deal.contract.sent = date
+        model.db.session.commit()
+        return deal.contract.sent
+    
+    @staticmethod
+    def save_signed(designer, date):
+        deal = Deals.get_by_designer(designer)
         deal.contract.signed = date
-        return deal.contract
+        model.db.session.commit()
+        return deal.contract.signed
 
 class Invoice:
     @staticmethod
-    def save_sent(deal, date):
+    def save_sent(designer, date):
+        deal = Deals.get_by_designer(designer)
         deal.invoice.sent = date
-        return deal.invoice
+        model.db.session.commit()
+        return deal.invoice.sent
     
     @staticmethod
-    def save_paid(deal, date):
+    def save_paid(designer, date):
+        deal = Deals.get_by_designer(designer)
         deal.invoice.paid = date
-        return deal.invoice
+        model.db.session.commit()
+        return deal.invoice.paid
 
 class AssetDefinition:
     @staticmethod
@@ -223,6 +440,88 @@ class Asset:
     pass
 
 
+class Users:
+    @staticmethod
+    def get_all():
+        return model.User.query.all()
+    
+    @staticmethod
+    def get_by_role(role_name):
+        return model.User.query.filter_by(role_name=role_name).all()
+    
+    @staticmethod
+    def get_by_username(username):
+        return model.User.query.filter(model.User.user_auth.has(username=username)).first()
+
+    @staticmethod
+    def get_or_create(username, role, first_name=None, last_name=None, email=None):
+        user = Users.get_by_username(username)
+        if user:
+            return user
+        else:
+            new_password = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(12))
+            user_auth = model.UserAuth(username=username, password=model.user_manager.hash_password(new_password))
+            user = model.User(role_name=role, user_auth=user_auth)
+            if first_name:
+                user.first_name = first_name
+            if last_name:
+                user.last_name = last_name
+            if email:
+                user.emails = [UserEmails.get_or_create(user, email)]
+            model.db.session.add(user)
+            model.db.session.commit()
+            
+            print(user.emails)
+            
+            return user
+    
+    @staticmethod
+    def new(first_name, last_name, email, role, username=None):
+        username = username or email.split('@')[0]
+        return Users.get_or_create(username, role, first_name, last_name, email)
+    
+    @staticmethod
+    def update_name(username, first_name, last_name):
+        user = Users.get_by_username(username)
+        user.first_name = first_name
+        user.last_name = last_name
+        model.db.session.commit()
+        return user
+    
+    @staticmethod
+    def update_role(username, role):
+        user = Users.get_by_username(username)
+        user.role = role
+        model.db.session.commit()
+        return user.role
+    
+    @staticmethod
+    def update_email(username, email):
+        user = Users.get_by_username(username)
+        user.emails = [UserEmails.get_or_create(user, email)]
+        model.db.session.commit()
+        return user.emails[0].email
+    
+    @staticmethod
+    def delete(username):
+        user = model.User.query.filter(model.User.user_auth.has(username=username)).one()
+        model.db.session.delete(user)
+        model.db.session.commit()
+        return user.username
+
+class UserEmails:
+    @staticmethod
+    def get_or_create(user, email):
+        user_email = model.UserEmail.query.filter_by(user_id=user.id, email=email).first()
+        if user_email:
+            return user_email
+        else:
+            user_email = model.UserEmail(email=email, is_primary=True)
+            model.db.session.add(user_email)
+            model.db.session.commit()
+            return user_email
+
+
 class DesignerTypes:
     @staticmethod
     def as_options():
@@ -230,91 +529,51 @@ class DesignerTypes:
     
     @staticmethod
     def get_all():
-        # return model.DesignerType.all()
-        return [
-            _DesignerTypeData("Digital"),
-            _DesignerTypeData("Tabletop"),
-            _DesignerTypeData("Artist"),
-            _DesignerTypeData("Media"),
-            _DesignerTypeData("Charity")
-        ]
+        return model.DesignerType.query.all()
+
+    @staticmethod
+    def get(name):
+        return model.DesignerType.query.filter_by(name=name).one()
 
 class LeadStatus:
     @staticmethod
-    def get_all():
-        return [
-            _LeadStatusData("To Call"),
-            _LeadStatusData("Reached Out"),
-            _LeadStatusData("In Talks"),
-            _LeadStatusData("Verbal Deal"),
-            _LeadStatusData("Declined"),
-            _LeadStatusData("Pulled Out")
-        ]
+    def get_transition_names(status):
+        return [state.name for state in model.LeadStatus.query.filter_by(name=status).one().transitions]
     
     @staticmethod
-    def get_transitions(status):
-        # return [name for name in model.LeadStatus.query.filter_by(name=status).transitions]
-        return [
-            _LeadStatusData("Verbal Deal"),
-            _LeadStatusData("Decline")
-        ]
+    def get(name):
+        return model.LeadStatus.query.filter_by(name=name).one()
+
+    @staticmethod
+    def get_initial():
+        return LeadStatus.get("To Call")
+
+class DealLevels:
+    @staticmethod
+    def get_all():
+        return model.DealLevel.query.all()
+    
+    @staticmethod
+    def get(name):
+        return model.DealLevel.query.filter_by(name=name).one()
+
+######################
+# Other, non-DB data #
+######################
+
+class UserRoles(Enum):
+    ADMIN = "admin"
+    SALES = "sales"
+    MARKETING = "marketing"
+    
+    def __init__(self, role):
+        self.role = role
     
 
 ##### Model Classes #####
 # These classes are serving the purpose of model classes during development
 
 import random
-
-class _DesignerData:
-    def __init__(self, name):
-        self.id = random.randint(1, 100)
-        self.name = name
-        self.type_name = "Digital"
-        self.notes = "NOTES"
-        self.homepage = "http://google.com"
-        
-        self.contacts = [_Contact("Foo Bar", "foo@example.com"), _Contact("Baz Gah", "baz@example.com")]
-        self.leads = []
-
-class _LeadData:
-    def __init__(self, designer, owner):
-        self.id = random.randint(1, 100)
-        self.designer = designer
-        self.owner = owner
-        self.created = datetime.datetime.now()
-        self.status = "In Talks"
-        
-        self.deal = None
-        self.contacts = [_Contact("Foo Bar", "foo@example.com")]
-        self.comments = [
-            _CommentData(_UserData("Test", "One", 1), "testing comment 1", 1445470160),
-            _CommentData(_UserData("Test", "One", 1), "testing comment 2", 1445463160),
-            _CommentData(_UserData("Test", "Three", 3), "testing comment 3", 1445473160)
-        ]
-
-class _DealData:
-    def __init__(self, lead, owner=None):
-        self.id = random.randint(1, 100)
-        self.lead = lead
-        self.owner = owner if owner else lead.owner
-        self.level = "Copper"
-        self.cash = 300
-        self.inkind = 0
-        self.notes = "Speacial deal\nprovisions and\n\n\tOTHER STUFF"
-        self.contract = _ContractData()
-        self.invoice = _InvoiceData()
-    
-    @property
-    def designer(self):
-        return self.lead.designer
-    
-    @property
-    def contract_signed(self):
-        return bool(self.contract.signed)
-    
-    @property
-    def invoice_paid(self):
-        return bool(self.invoice.paid)
 
 class _ShowcaseData:
     def __init__(self, designer):
@@ -336,42 +595,6 @@ class _ExhibitorData:
         
         for asset in self.assets:
             asset.exhibitor = self
-
-class _DesignerTypeData:
-    def __init__(self, name):
-        self.id = random.randint(1, 100)
-        self.name = name
-
-class _LeadStatusData:
-    def __init__(self, name, transitions=[]):
-        self.id = random.randint(1, 100)
-        self.name = name
-        self.transitions = transitions
-
-class _Contact:
-    def __init__(self, name, email):
-        self.name = name
-        self.email = email
-
-class _CommentData:
-    def __init__(self, user, text, created=None):
-        self.id = random.randint(1, 100)
-        self.user = user
-        self.user_id = self.user.id
-        self.created = datetime.datetime.fromtimestamp(created) if created else datetime.datetime.now()
-        self.text = text
-
-class _ContractData:
-    def __init__(self, sent=None, signed=None):
-        self.id = random.randint(1, 100)
-        self.sent = sent
-        self.signed = signed
-
-class _InvoiceData:
-    def __init__(self, sent=None, paid=None):
-        self.id = random.randint(1, 100)
-        self.sent = sent
-        self.paid = paid
 
 class _AssetDefinitionData:
     def __init__(self, name, level, type, formats, media_types):
@@ -416,25 +639,8 @@ class _AssetData:
     def __eq__(self, other):
         return self.id == other.id
 
-class _UserData:
-    def __init__(self, first_name, last_name, id=None):
-        self.id = id or 1
-        self.first_name = first_name
-        self.last_name = last_name
-        self.enabled = True
-        self.type_name = "sales"
-        self.user_auth = _UserAuth((first_name[0] + last_name).lower())
-        self.deals = []
-        self.leads = []
 
-class _UserAuth:
-    def __init__(self, username):
-        self.id = 1
-        self.username = username
-        self.password = "BLAH"
-        self.reset_password_token = ''
+def get_or_create_current_user(username="dummy"):
+    return Users.get_or_create("dummy", "admin")
 
-
-
-
-current_user = _UserData("Test", "Four", 4)
+current_user = get_or_create_current_user()

@@ -1,33 +1,58 @@
 {% extends "deals-layout.html" %}
+{% import 'modals.html' as modals %}
 
 {% block content %}
 <h1>{{ deal.designer.name }}</h1>
 
 <div style="font-weight: bold;">Owner</div>
-    <span style="margin-left:25px;">
-        <a href="{{ url_for('users.info', username=deal.owner.user_auth.username) }}">
-            {{ deal.owner.first_name }} {{ deal.owner.last_name }}
-        </a>
-    </span>
+<button type="button" class="btn btn-default" data-toggle="modal" data-target="#{{ modals.modal_id('owner') }}" id="owner-display" style="min-width:100px; min-height: 30px;">
+    {{ deal.owner }}
+</button>
+
+<div style="height: 10px;"></div>
+
 <div style="font-weight: bold;">Level</div>
-    <span style="margin-left:25px;">{{ deal.level }}</span>
-<div style="font-weight: bold;">Cash</div>
-    <span style="margin-left:25px;">${{ deal.cash }}</span>
-<div style="font-weight: bold;">Inkind Value</div>
-    <span style="margin-left:25px;">${{ deal.inkind }}</span>
-<div style="font-weight: bold;">Notes</div>
-    <div style="margin-left:25px; white-space:pre;">{{ deal.notes|escape }}</div>
+<button type="button" class="btn btn-default" data-toggle="modal" data-target="#{{ modals.modal_id('level') }}" id="level-display" style="min-width:75px; min-height: 30px;">
+    {{ deal.level }}
+</button>
+
+<div style="height: 10px;"></div>
+
+<div style="font-weight: bold;">Cash
+    <button type="button" class="btn btn-info btn-xs" data-toggle="modal" data-target="#{{ modals.modal_id('cash') }}">
+        <span class="glyphicon glyphicon-pencil"></span> Edit 
+    </button>
+</div>
+<div style="margin-left:25px;">$<span id="cash-display">{{ deal.cash }}</span></div>
+
+<div style="height: 10px;"></div>
+
+<div style="font-weight: bold;">Inkind Service(s)
+    <button type="button" class="btn btn-info btn-xs" data-toggle="modal" data-target="#{{ modals.modal_id('inkind') }}">
+        <span class="glyphicon glyphicon-pencil"></span> Edit 
+    </button>
+</div>
+<div id="inkind-display" style="margin-left:25px; white-space:pre;">{{ deal.inkind|escape }}</div>
+
+<div style="height: 10px;"></div>
+
+<div style="font-weight: bold;">Notes
+    <button type="button" class="btn btn-info btn-xs" data-toggle="modal" data-target="#{{ modals.modal_id('notes') }}">
+        <span class="glyphicon glyphicon-pencil"></span> Edit 
+    </button>
+</div>
+<div id="notes-display" style="margin-left:25px; white-space:pre;">{{ deal.notes|escape }}</div>
 
 <h3>Contract</h3>
 <div style="float:left;">
     <span style="font-weight: bold;">Sent: </span>
-    <span id="contract-sent-date">{% if deal.contract.sent %}{{ deal.contract.sent }}{% else %}Not sent{% endif %}</span>
+    <span id="contract-sent-date">{% if deal.contract.sent %}{{ deal.contract.sent|date }}{% else %}Not sent{% endif %}</span>
     <input type="hidden" id="contract-sent-datepicker" />
 </div>
 <div style="float:left; width:50px;">&nbsp;</div>
 <div style="float:left;">
     <span style="font-weight: bold;">Signed: </span>
-    <span id="contract-signed-date">{% if deal.contract.signed %}{{ deal.contract.signed }}{% else %}Not signed{% endif %}</span>
+    <span id="contract-signed-date">{% if deal.contract.signed %}{{ deal.contract.signed|date }}{% else %}Not signed{% endif %}</span>
     <input type="hidden" id="contract-signed-datepicker" />
 </div>
 
@@ -36,16 +61,27 @@
 <h3>Invoice</h3>
 <div style="float:left;">
     <span style="font-weight: bold;">Sent: </span>
-    <span id="invoice-sent-date">{% if deal.invoice.sent %}{{ deal.invoice.sent }}{% else %}Not sent{% endif %}</span>
+    <span id="invoice-sent-date">{% if deal.invoice.sent %}{{ deal.invoice.sent|date }}{% else %}Not sent{% endif %}</span>
     <input type="hidden" id="invoice-sent-datepicker" />
 </div>
 <div style="float:left; width:50px;">&nbsp;</div>
 <div style="float:left;">
     <span style="font-weight: bold;">Paid: </span>
-    <span id="invoice-paid-date">{% if deal.invoice.paid %}{{ deal.invoice.paid }}{% else %}Not paid{% endif %}</span>
+    <span id="invoice-paid-date">{% if deal.invoice.paid %}{{ deal.invoice.paid|date }}{% else %}Not paid{% endif %}</span>
     <input type="hidden" id="invoice-paid-datepicker" />
 </div>
 
+<!-- Input modals -->
+<!-- Owner modal -->
+{{ modals.list_modal(modals.modal_id('owner'), "Deal Owner", owner_list) }}
+<!-- Level modal -->
+{{ modals.list_modal(modals.modal_id('level'), "Deal Level", level_list) }}
+<!-- Cash modal -->
+{{ modals.textbox_modal(modals.modal_id('cash'), "Cash", deal.cash, "number") }}
+<!-- Inkind modal -->
+{{ modals.textarea_modal(modals.modal_id('inkind'), "Inkind Services", deal.inkind) }}
+<!-- Notes modal -->
+{{ modals.textarea_modal(modals.modal_id('notes'), "Notes", deal.notes) }}
 {% endblock %}
 
 {% block js %}
@@ -77,4 +113,11 @@ makeDatepicker("invoice-paid-datepicker", "invoice-paid-date", "{{ url_for('deal
 $(".ui-datepicker-trigger").mouseover(function() {
     $(this).css('cursor', 'pointer');
 });
+
+<!-- Modal JavaScript -->
+{{ modals.list_modal_js(modals.modal_id('owner'), url_for('deals.update_owner', designer=deal.designer.name), "owner-display")|safe }}
+{{ modals.list_modal_js(modals.modal_id('level'), url_for('deals.update_level', designer=deal.designer.name), "level-display")|safe }}
+{{ modals.textbox_modal_js(modals.modal_id('cash'), url_for('deals.update_cash', designer=deal.designer.name), "cash-display")|safe }}
+{{ modals.textarea_modal_js(modals.modal_id('inkind'), url_for('deals.update_inkind', designer=deal.designer.name), "inkind-display")|safe }}
+{{ modals.textarea_modal_js(modals.modal_id('notes'), url_for('deals.update_notes', designer=deal.designer.name), "notes-display")|safe }}
 {% endblock  %}

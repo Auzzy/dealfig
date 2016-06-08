@@ -1,22 +1,35 @@
 {% extends "leads-layout.html" %}
+{% import 'modals.html' as modals %}
 
 {% block content %}
 <h1>Lead: {{ lead.designer.name }}</h1>
 
 <div style="font-weight: bold;">Owner</div>
-    <span style="margin-left:25px;">
-        <a href="{{ url_for('users.info', username=lead.owner.user_auth.username) }}">
-            {{ lead.owner.first_name }} {{ lead.owner.last_name }}
-        </a>
-    </span>
+    <button type="button" class="btn btn-default" data-toggle="modal" data-target="#{{ modals.modal_id('owner') }}" id="owner-display" style="min-width:100px; min-height: 30px;">
+        {% if lead.owner %}
+        {{ lead.owner.first_name }} {{ lead.owner.last_name }}
+        {% endif %}
+    </button>
+
 <div style="font-weight:bold">Status</div>
-    <span id="lead-status" style="margin-left:25px;">{{ lead.status }}</span>
+    <button type="button" class="btn btn-default" data-toggle="modal" data-target="#{{ modals.modal_id('status') }}" id="status-display">{{ lead.status.name }}</button>
+    {% if lead.deal %}
+    <a href="{{ url_for('deals.info', designer=lead.designer.name) }}"><button type="button" class="btn btn-info">View Deal</button></a>
+    {% endif %}
+
+<!--
+Currently not sure what I'm doing about Lead contacts, so hide them
+{#
 <div style="font-weight:bold">Lead Contact(s)</div>
     <span style="margin-left:25px;">
     {% for contact in lead.contacts %}
     {{ contact.name }} &lt;<a href="mailto:{{ contact.email }}">{{ contact.email }}</a>&gt;<br />
     {% endfor %}
     </span>
+#}
+-->
+
+<div style="height:1em;">&nbsp;</div>
 
 <h3>Comments</h3>
 <div class="row">
@@ -31,29 +44,104 @@
 </div>
 
 <div id="comments">
-{% for comment in lead.comments|sort(attribute="created") %}
+{% for comment in lead.comments|sort(attribute="created", reverse=True) %}
 {% include "_comment.html" %}
 {% endfor %}
+</div>
+
+<!-- Input Modals -->
+<!-- Owner modal -->
+{{ modals.list_modal(modals.modal_id("owner"), "Deal Owner", owner_list) }}
+
+<!-- Change Status modal -->
+<div id="status-modal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">Change Status</h4>
+            </div>
+            <div class="modal-body">
+                <div class="list-group" id="status-model-list-group"></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 {% endblock %}
 
 {% block js %}
-$("#lead-status").editable("{{ url_for('leads.post_status', designer=lead.designer.name) }}", {
-    // data: "{'verbal':'Verbal Agreement', 'pulled': 'Pulled Out'}",
-    loadurl: "{{ url_for('leads.get_transitions') }}",
-    loadtype: "POST",
-    loaddata: function(value, settings) {
-        return {status: $("#lead-status").text()};
-    },
-    type: "select",
-    submit: "OK"
-});
+function toggleCreateDeal(show) {
+    if (show) {
+        if ($("#create-deal-button").length) {
+            $("#create-deal-button").show();
+        }
+        else {
+            $("<button />")
+                .addClass("btn")
+                .addClass("btn-primary")
+                .attr("type", "button")
+                .attr("id", "create-deal-button")
+                .text("Create Deal")
+                .click(function() {
+                    $("<form />")
+                        .attr("method", "POST")
+                        .attr("action", "{{ url_for('deals.create', designer=lead.designer.name) }}")
+                    .append(
+                        $("<input />")
+                            .attr("type", "hidden")
+                            .attr("name", "csrf_token")
+                            .attr("value", "{{ csrf_token() }}"))
+                    .submit();
+                })
+            .insertAfter($("#status-display"));
+            
+            $("<span />").html("&nbsp;")
+            .insertAfter($("#status-display"));
+        }
+    }
+    else {
+        $("#create-deal-button").hide();
+    }
+}
 
+function updateTransitions() {
+    $.get("{{ url_for('leads.get_transitions') }}?status=" + $("#status-display").text())
+        .done(function(data) {
+            $("#status-model-list-group").empty();
+        
+            var transitions = data["data"];
+            
+            for (k = 0; k < transitions.length; k++) {
+                $("<button />")
+                    .addClass("list-group-item")
+                    .addClass("new-status")
+                    .attr("type", "button")
+                    .data("status", transitions[k])
+                    .attr("data-dismiss", "modal")
+                    .text(transitions[k])
+                    .click(function() {
+                        $.post("{{ url_for('leads.update_status', designer=lead.designer.name) }}", {status: $(this).data("status")})
+                            .done(function(data) {
+                                $("#status-display").text(data["name"]);
+                                toggleCreateDeal(data["deal_ready"]);
+                                updateTransitions();
+                            });
+                    })
+                .appendTo($("#status-model-list-group"));
+            }
+        });
+}
+
+updateTransitions();
+
+{% if lead.status.deal_ready and not lead.deal %}
+toggleCreateDeal(true);
+{% endif %}
 
 $("#post-comment").click(function() {
     var newComment = $("#new-comment").val();
-    $.post("{{ url_for("leads.submit_comment", designer=lead.designer.name) }}", { commentText: newComment })
+    $.post("{{ url_for('leads.submit_comment', designer=lead.designer.name) }}", { commentText: newComment })
         .done(function(data) {
             $("#new-comment").val("");
             $("#comments").prepend(data);
@@ -62,4 +150,8 @@ $("#post-comment").click(function() {
             alert("Request failed: " + textStatus);
         });
 });
+
+<!-- Modal JavaScript -->
+{{ modals.list_modal_js(modals.modal_id('owner'), url_for('leads.update_owner', designer=lead.designer.name), "owner-display")|safe }}
+
 {% endblock %}

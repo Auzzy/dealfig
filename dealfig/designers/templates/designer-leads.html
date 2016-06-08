@@ -1,0 +1,18 @@
+<table id="leads-table" class="table table-striped advanced-table" style="width:40%;">
+    <thead>
+        <tr>
+            <th style="min-width:50px;">Year</th>
+            <th style="min-width:50px;">Owner</th>
+            <th style="min-width:50px;">Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for lead in designer.leads|sort(True, attribute="year") %}
+        <tr>
+            <td><a href="{{ url_for('leads.info', designer=designer.name, year=lead.year) }}">{{ lead.year }}</a></td>
+            <td>{{ lead.owner }}</td>
+            <td>{{ lead.status }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+{% import 'components.html' as components %}
+{% import 'modals.html' as modals %}
+
+{% block content %}
+
+<div class="control-group" id="contacts" style="width:30%">
+    <div class="controls">
+        <form role="form" autocomplete="off" method="POST" action="{{ url_for('test') }}">
+            <div id="input-container">
+            {% for field in form %}
+                {{ field() }}
+                
+                {% for error in field.errors %}
+                    <br />{{ error }}
+                {% endfor %}
+            {% endfor %}
+            </div>
+            
+            <input type="submit" />
+        </form>
+    </div>
+</div>
+
+<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#{{ modals.modal_id('designer') }}">
+    New Designer...
+</button>
+
+
+{% with %}
+{% set form_modal_body %}
+<label for="name_input">Name</label>
+<input type="text" class="form-control" id="name_input" placeholder="Name" />
+<p>Designer Types</p>
+{{ components.list_group(modals.modal_id("designer"), designer_types) }}
+{% endset %}
+{{ modals.form_modal(modals.modal_id("designer"), "New Designer", form_modal_body) }}
+{% endwith %}
+
+{% endblock %}
+
+{% block js %}
+{{ components.radio_group(modals.modal_id("designer"))|safe }}
+{% endblock %}

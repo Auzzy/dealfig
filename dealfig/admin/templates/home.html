@@ -1,0 +1,105 @@
+{% extends "admin-layout.html" %}
+{% import 'components.html' as components %}
+{% import 'modals.html' as modals %}
+
+{% block title %}Admin Page{% endblock %}
+
+{% block header %}
+<h2>Admin Page</h2>
+{% endblock %}
+
+{% block content %}
+<div>
+    <ul class="nav nav-tabs" role="tablist">
+        <li role="presentation" class="active"><a href="#users" aria-controls="home" role="tab" data-toggle="tab">Manage Users</a></li>
+        <li role="presentation"><a href="#profile" aria-controls="profile" role="tab" data-toggle="tab">Profile</a></li>
+    </ul>
+    
+    <div class="tab-content">
+        <!-- Manage Users tab -->
+        <div role="tabpanel" class="tab-pane active" id="users">
+            <div style="height:20px;">&nbsp;</div>
+            
+            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#{{ modals.modal_id('user') }}">
+                New User...
+            </button>
+            
+            
+            <div style="height:20px;">&nbsp;</div>
+            
+            <table id="user-table" class="table table-striped advanced-table" style="width:50%;">
+                <thead>
+                    <tr>
+                        <th style="min-width:50px;">Name</th>
+                        <th style="min-width:50px;">Username</th>
+                        <th style="min-width:50px;">Role</th>
+                        <th style="min-width:50px;">Email</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users|sort(attribute="last_name") %}
+                    <tr>
+                        <td><a href="{{ url_for('admin.user_info', username=user.username) }}">{{ user }}</a></td>
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.role_name }}</td>
+                        <td>
+                            {% if user.emails %}
+                            <a href="mailto:{{ user.emails[0].email }}">{{ user.emails[0].email }}</a>
+                            {% endif %}
+                            <div style="position:relative">
+                                <button type="button" class="btn btn-danger delete-user" data-username="{{ user.username }}">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div role="tabpanel" class="tab-pane" id="profile">Other</div>
+    </div>
+</div>
+
+
+
+{% with %}
+{% set form_modal_body %}
+<label for="first_name_input">First Name</label>
+<input type="text" class="form-control" id="first_name_input" placeholder="First Name" />
+<label for="last_name_input">Last Name</label>
+<input type="text" class="form-control" id="last_name_input" placeholder="Last Name" />
+<label for="email_input">Email</label>
+<input type="email" class="form-control" id="email_input" placeholder="Email" />
+<div style="min-height:10px;">&nbsp;</div>
+<label for="{{ components.list_group_id(modals.modal_id('user')) }}">User Role</label>
+{{ components.list_group(modals.modal_id("user"), user_roles) }}
+{% endset %}
+{{ modals.form_modal(modals.modal_id("user"), "New User", form_modal_body) }}
+{% endwith %}
+{% endblock %}
+
+{% block css %}
+button.delete-user {
+    position: absolute;
+    right: -80px;
+    top: -27px;
+}
+{% endblock %}
+
+{% block js %}
+$(".delete-user").click(function() {
+    var delete_button = this;
+    var username = $(this).data("username");
+    $.post("{{ url_for('admin.delete_user') }}", { username: username })
+        .done(function(data) {
+            $(delete_button).closest("tr").remove();
+        })
+        .fail(function( jqXHR, textStatus ) {
+            alert("Request failed: " + textStatus);
+        });
+});
+
+{{ components.radio_group(modals.modal_id("user"))|safe }}
+
+{% set input_map = {"first_name": {"input": "#first_name_input"}, "last_name": {"input": "#last_name_input"}, "email": {"input": "#email_input"}, "user_role": {"input": components.active_selector(modals.modal_id("user"))}} %}
+{{ modals.form_modal_js(modals.modal_id("user"), url_for('admin.new_user'), input_map, True)|safe }}
+{% endblock %}

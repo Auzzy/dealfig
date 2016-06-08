@@ -1,0 +1,17 @@
+{% extends "admin-layout.html" %}
+
+{% block content %}
+<div class="control-group" style="width:30%">
+    <div class="controls">
+        <form role="form" autocomplete="off" method="POST">
+            {% include "_render-form.html" %}
+            
+            <br />
+            <button type="submit" class="btn btn-default">Save</button>
+            <a href="{{ url_for('admin.home') }}#users">
+                <input type="button" class="btn btn-default" value="Cancel" />
+            </a>
+        </form>
+    </div>
+</div>
+{% endblock %}
