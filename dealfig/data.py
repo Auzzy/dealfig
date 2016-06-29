@@ -32,7 +32,7 @@ class Designers:
     
     @staticmethod
     def new(name, type_name):
-        return data.Designers.get_or_create(name, type_name)
+        return Designers.get_or_create(name, type_name)
     
     @staticmethod
     def update_type(name, designer_type):
@@ -58,9 +58,11 @@ class Designers:
     @staticmethod
     def add_contact(name, contact_name, contact_email):
         designer = Designers.get_by_name(name)
-        contact = Contacts.save(contact_name, contact_email)
-        designer.contacts.append(contact)
-        model.db.session.commit()
+        contact = Contacts.get_or_create(contact_name, contact_email)
+        designer_contact_emails = [contact.email for contact in designer.contacts]
+        if contact.email not in designer_contact_emails:
+            designer.contacts.append(contact)
+            model.db.session.commit()
         return contact
     
     @staticmethod
@@ -132,6 +134,20 @@ class Comments:
         lead.comments.append(comment)
         model.db.session.commit()
         return comment
+    
+    @staticmethod
+    def edit(id, text):
+        comment = model.Comment.query.get(id)
+        comment.text = text
+        comment.edited = datetime.datetime.now()
+        model.db.session.commit()
+        return comment
+
+    @staticmethod
+    def delete(id):
+        comment = model.Comment.query.get(id)
+        model.db.session.delete(comment)
+        model.db.session.commit()
 
 class Deals:
     @staticmethod
@@ -327,12 +343,12 @@ class Contacts:
     def get_or_create(name, email):
         contact = Contacts.get_by_email(email)
         if contact:
-            contact.name = name
+            return contact
         else:
             contact = model.Contact(name=name, email=email)
             model.db.session.add(contact)
-        model.db.session.commit()
-        return contact
+            model.db.session.commit()
+            return contact
     
     @staticmethod
     def save(name, email):
@@ -470,9 +486,6 @@ class Users:
                 user.emails = [UserEmails.get_or_create(user, email)]
             model.db.session.add(user)
             model.db.session.commit()
-            
-            print(user.emails)
-            
             return user
     
     @staticmethod

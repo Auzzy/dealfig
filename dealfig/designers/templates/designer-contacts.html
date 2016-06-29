@@ -48,6 +48,9 @@ $(".delete-contact").click(function() {
     $.post("{{ url_for('designers.delete_contact', designer_name=designer.name) }}", {email: $(this).data("email")})
         .done(function(data) {
             $(delete_button).closest("tr").remove();
+            if ($("#contact-table tbody tr").length == 0) {
+                $("#contact-table").DataTable().clear().draw();
+            }
         })
         .fail(function(jqXHR, textStatus) {
             alert("Request failed: " + textStatus);

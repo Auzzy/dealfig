@@ -1,6 +1,6 @@
 from flask import jsonify, redirect, render_template, request, url_for
 
-from dealfig import data
+from dealfig import data, filters
 from dealfig.leads import app
 
 @app.route("/")
@@ -25,6 +25,19 @@ def submit_comment(designer):
     text = request.form["commentText"]
     comment = data.Comments.create(designer, text)
     return render_template("_comment.html", comment=comment)
+
+@app.route("/<designer>/comment/edit", methods=["POST"])
+def edit_comment(designer):
+    comment_id = request.form["commentId"]
+    text = request.form["commentText"]
+    comment = data.Comments.edit(comment_id, text)
+    return jsonify({"comment": comment.text, "timestamp": filters.comment_datetime_filter(comment.edited)})
+
+@app.route('/designer/comment/delete', methods=["POST"])
+def delete_comment():
+    id = request.form["comment_id"]
+    data.Comments.delete(id)
+    return jsonify({})
 
 @app.route("/<designer>/status", methods=["POST"])
 def update_status(designer):

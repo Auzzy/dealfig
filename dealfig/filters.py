@@ -20,9 +20,3 @@ def comment_datetime_filter(value):
 @app.template_filter("date")
 def date_filter(value):
     return value.strftime(_DATE_FORMAT)
-
-'''
-app.jinja_env.filters["localize_datetime"] = localize_datetime_filter
-app.jinja_env.filters["comment_datetime"] = comment_datetime_filter
-app.jinja.env.filters["date"] = date_filter
-'''

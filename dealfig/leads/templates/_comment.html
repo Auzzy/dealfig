@@ -1,11 +1,9 @@
-<div class="row">
-    <!--
+<div class="row" id="comment-{{ comment.id }}" data-comment-id="{{ comment.id }}">
     <div class="col-sm-1">
         <div class="thumbnail">
-            <img class="img-responsive user-photo" src="https://ssl.gstatic.com/accounts/ui/avatar_2x.png" />
+            <img class="img-responsive user-photo" src="http://www.avatarsdb.com/avatars/gangnam_style_cat.gif" />
         </div>
     </div>
-    -->
 
     <div class="col-sm-5">
         <div class="panel panel-default">
@@ -15,9 +13,34 @@
                         {{ comment.user.first_name }} {{ comment.user.last_name }}
                     </a>
                 </strong>
-                <span class="text-muted">{{ comment.created|comment_datetime }}</span>
+                <span class="text-muted">
+                    <strong>{{ comment.created|comment_datetime }}</strong>
+                    {% if comment.edited -%}
+                    <span class="edited-timestamp-section">(Edited: <span class="edited-timestamp">{{ comment.edited|comment_datetime }}</span>)</span>
+                    {%- else -%}
+                    <span class="edited-timestamp-section" style="display:none;">(Edited: <span class="edited-timestamp"></span>)</span>
+                    {%- endif %}
+                </span>
+                <div class="modify-buttons" style="float:right">
+                    <button type="button" class="btn btn-success btn-xs edit-comment">
+                        <span class="glyphicon glyphicon-pencil"></span> Edit 
+                    </button>
+                    <button type="button" class="btn btn-danger btn-xs delete-comment" data-comment-id="{{ comment.id }}">
+                        <span id="delete-comment-spinner" class="glyphicon glyphicon-cog gly-spin" style="display: none;"></span>
+                        <span class="glyphicon glyphicon-trash"></span> Delete
+                    </button>
+                </div>
             </div>
-            <div class="panel-body">{{ comment.text }}</div>
+            <div class="panel-body">
+                <div class="comment-text">
+                    {{ comment.text }}
+                </div>
+                <div class="edit-comment" style="display: none;">
+                    <textarea class="form-control edit-comment-textarea"></textarea><br />
+                    <button type="submit" class="btn btn-primary save-edited-comment">Save</button>
+                    <span class="glyphicon glyphicon-cog gly-spin save-edited-comment-spinner" style="font-size: 18px; position: relative; top: 4px; display: none;"></span>
+                </div>
+            </div>
         </div>
     </div>
 </div>

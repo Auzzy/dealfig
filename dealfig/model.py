@@ -140,8 +140,9 @@ class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     lead_id = db.Column(db.Integer, db.ForeignKey('lead.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user = db.relationship("User", back_populates="comments", cascade="all")
+    user = db.relationship("User", back_populates="comments")
     created = db.Column(db.DateTime(), nullable=False)
+    edited = db.Column(db.DateTime())
     text = db.Column(db.Text(), nullable=False)
 
 class Contract(db.Model):
@@ -193,6 +194,8 @@ class Asset(db.Model):
     format_id = db.Column(db.Integer, db.ForeignKey('file_format.id'), nullable=False)
     format = db.relationship("FileFormat")
 
+
+
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(50), nullable=False, default='')
@@ -235,7 +238,6 @@ class UserAuth(db.Model, UserMixin):
     username = db.Column(db.String(50), nullable=False, unique=True)
     password = db.Column(db.String(255), nullable=False, default='')
     reset_password_token = db.Column(db.String(100), nullable=False, default='')
-
 
 class DesignerType(db.Model):
     id = db.Column(db.Integer, primary_key=True)

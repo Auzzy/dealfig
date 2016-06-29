@@ -38,6 +38,7 @@ Currently not sure what I'm doing about Lead contacts, so hide them
             <div class="panel-body">
                 <textarea id="new-comment" class="form-control" placeholder="Post a comment..."></textarea><br />
                 <button id="post-comment" type="submit" class="btn btn-default">Post</button>
+                <span id="post-comment-spinner" class="glyphicon glyphicon-cog gly-spin" style="font-size: 18px; position: relative; top: 4px; display: none;"></span>
             </div>
         </div>
     </div>
@@ -141,10 +142,60 @@ toggleCreateDeal(true);
 
 $("#post-comment").click(function() {
     var newComment = $("#new-comment").val();
+    $("#post-comment-spinner").show();
     $.post("{{ url_for('leads.submit_comment', designer=lead.designer.name) }}", { commentText: newComment })
         .done(function(data) {
+            $("#post-comment-spinner").hide();
             $("#new-comment").val("");
             $("#comments").prepend(data);
+        })
+        .fail(function( jqXHR, textStatus ) {
+            alert("Request failed: " + textStatus);
+        });
+});
+
+$("#comments").on("click", ".delete-comment", function() {
+    var deleteButton = this;
+    var comment_id = $(deleteButton).data("comment-id");
+    $(deleteButton).find("#delete-comment-spinner").show();
+    $.post("{{ url_for('leads.delete_comment') }}", { comment_id: comment_id })
+        .done(function(data) {
+            $(deleteButton).find("#delete-comment-spinner").hide();
+            $(deleteButton).closest(".row").remove();
+        });
+});
+
+$("#comments").on("click", ".edit-comment", function() {
+    var editButton = this;
+    var commentTextDiv = $(editButton).closest(".row").find(".comment-text");
+    var editCommentDiv = $(editButton).closest(".row").find(".edit-comment");
+    
+    editCommentDiv.find(".edit-comment-textarea").text(commentTextDiv.text().trim());
+    
+    $(editButton).prop("disabled", true);
+    $(editButton).closest(".modify-buttons").find(".delete-comment").prop("disabled", true);
+    commentTextDiv.hide();
+    editCommentDiv.show();
+});
+
+$("#comments").on("click", ".save-edited-comment", function() {
+    var editCommentDiv = $(this).closest(".edit-comment");
+    var editedComment = editCommentDiv.find(".edit-comment-textarea").val();
+    var commentId = editCommentDiv.closest(".row").data("comment-id");
+    editCommentDiv.find(".save-edited-comment-spinner").show();
+    $.post("{{ url_for('leads.edit_comment', designer=lead.designer.name) }}", { commentText: editedComment, commentId: commentId })
+        .done(function(data) {
+            editCommentDiv.find(".save-edited-comment-spinner").hide();
+            
+            editCommentDiv.closest(".panel-body").find(".comment-text").text(data["comment"]);
+
+            var buttons = editCommentDiv.closest(".row").find(".modify-buttons");
+            editCommentDiv.hide();
+            editCommentDiv.closest(".row").find(".edited-timestamp-section").show();
+            editCommentDiv.closest(".row").find(".edited-timestamp").text(data["timestamp"]);
+            editCommentDiv.closest(".panel-body").find(".comment-text").show();
+            buttons.find(".edit-comment").prop("disabled", false);
+            buttons.find(".delete-comment").prop("disabled", false);
         })
         .fail(function( jqXHR, textStatus ) {
             alert("Request failed: " + textStatus);
