@@ -13,16 +13,21 @@ SECRET_KEY = "e211788b-355d-4da4-844c-d7a244992a43"
 # Flask-Uploads
 # UPLOADS_DEFAULT_DEST = os.path.join(basedir, "uploads")
 
-# Flask-Users
-USER_APP_NAME = "DealFIG"
-USER_ENABLE_CHANGE_USERNAME = False
-USER_ENABLE_REGISTRATION = False
-USER_ENABLE_CONFIRM_EMAIL = False
-USER_ENABLE_FORGOT_PASSWORD = True
+# Flask-Security
+# SECURITY_USER_IDENTITY_ATTRIBUTES = "username"    # I can enable this to allow login via username (http://stackoverflow.com/a/36929329/6516357)
+SECURITY_PASSWORD_HASH = "bcrypt"
+SECURITY_PASSWORD_SALT = "hello"
+SECURITY_EMAIL_SENDER = "sponsors@bostonfig.com"
+
+SECURITY_RECOVERABLE = True
+SECURITY_CHANGEABLE = True
+SECURITY_TRACKABLE = False # Maybe check out tracking once I get this running
+SECURITY_CONFIRM_EMAIL_WITHIN = "1 days"
+SECURITY_RESET_PASSWORD_WITHIN = "1 days"
 
 # Flask-Mail
 MAIL_USERNAME = "sponsors@bostonfig.com"
-MAIL_PASSWORD = "2015bfig!"
+MAIL_PASSWORD = "2016bfig!"
 MAIL_DEFAULT_SENDER = ("Boston FIG Sponsor Coordinator", "sponsors@bostonfig.com")
 DEFAULT_MAIL_SENDER = ("Boston FIG Sponsor Coordinator", "sponsors@bostonfig.com")
 MAIL_SERVER = "smtp.gmail.com"

@@ -4,7 +4,7 @@ import re
 import sys
 
 from flask.ext.sqlalchemy import event, SQLAlchemy
-from flask.ext.user import SQLAlchemyAdapter, UserManager, UserMixin
+from flask.ext.security import Security, SQLAlchemyUserDatastore, UserMixin, RoleMixin
 from wtforms.validators import ValidationError
 
 from dealfig.app import app
@@ -40,6 +40,10 @@ asset_definition_to_media_type = db.Table('asset_definition_to_media_type',
     db.Column('asset_definition_id', db.Integer, db.ForeignKey('asset_definition.id')),
     db.Column('media_type_id', db.Integer, db.ForeignKey('media_type.id'))
 )
+
+user_to_role = db.Table('user_to_role',
+        db.Column('user_id', db.Integer(), db.ForeignKey('user.id')),
+        db.Column('user_role_id', db.Integer(), db.ForeignKey('user_role.id')))
 
 class Designer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -194,25 +198,26 @@ class Asset(db.Model):
     format_id = db.Column(db.Integer, db.ForeignKey('file_format.id'), nullable=False)
     format = db.relationship("FileFormat")
 
-
-
+class UserRole(db.Model, RoleMixin):
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(80), nullable=False, unique=True)
+    description = db.Column(db.String(255))
+    
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(50), nullable=False, default='')
     last_name = db.Column(db.String(50), nullable=False, default='')
-    enabled = db.Column(db.Boolean(), nullable=False, default=False)
-    role_name = db.Column("role", db.String(50), nullable=False)
-    emails = db.relationship("UserEmail", cascade="all, delete-orphan")
-    user_auth = db.relationship("UserAuth", uselist=False, cascade="all, delete-orphan")
+    email = db.Column(db.String(255), nullable=False, unique=True)
+    password = db.Column(db.String(255), nullable=False, default='')
+    active = db.Column(db.Boolean(), nullable=False, default=True)
+    roles = db.relationship('UserRole', secondary=user_to_role, backref=db.backref('users', lazy='dynamic'))
     
     comments = db.relationship("Comment", back_populates="user", cascade="all, delete-orphan")
     
-    def is_active(self):
-        return self.enabled
-
+    # Note that this property is only to keep all consumers happy until I enable username login, at which point a username field will be added
     @property
     def username(self):
-        return self.user_auth.username
+        return self.email.split('@')[0]
 
     @property
     def key(self):
@@ -220,24 +225,6 @@ class User(db.Model, UserMixin):
 
     def __str__(self):
         return "{first} {last}".format(first=self.first_name, last=self.last_name)
-
-class UserEmail(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    email = db.Column(db.String(255), nullable=False, unique=True)
-    is_primary = db.Column(db.Boolean(), nullable=False, default=False)
-    confirmed_at = db.Column(db.DateTime())
-    user = db.relationship('User', uselist=False)
-
-    def __str__(self):
-        return self.email
-
-class UserAuth(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer(), db.ForeignKey('user.id', ondelete='CASCADE'))
-    username = db.Column(db.String(50), nullable=False, unique=True)
-    password = db.Column(db.String(255), nullable=False, default='')
-    reset_password_token = db.Column(db.String(100), nullable=False, default='')
 
 class DesignerType(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -284,11 +271,14 @@ def password_validator(form, field):
     if len(password) < 6:
         raise ValidationError("Password must have at least 6 characters.")
 
+# Setup Flask-Security
+user_datastore = SQLAlchemyUserDatastore(db, User, UserRole)
+user_manager = Security(app, user_datastore)
+'''
 if not hasattr(app, "user_manager"):
     db_adapter = SQLAlchemyAdapter(db, User, UserAuthClass=UserAuth, UserEmailClass=UserEmail)
     user_manager = UserManager(db_adapter, app, password_validator=password_validator)
-
-
+'''
 
 def _create():
     db.create_all()

@@ -1,5 +1,4 @@
 from flask import jsonify, redirect, render_template, request, url_for
-from flask.ext.user import login_required
 
 from dealfig import data
 from dealfig.designers import app

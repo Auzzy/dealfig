@@ -1,7 +1,7 @@
 from flask import jsonify, redirect, render_template, request, url_for
 
 from dealfig import data
-from dealfig.admin import app, forms
+from dealfig.admin import app
 
 @app.route("/")
 def home():

@@ -1,7 +1,10 @@
+from flask import Blueprint, current_app
+from flask.ext.security import current_user, login_required
 from flaskext.uploads import configure_uploads, UploadSet
 
 from dealfig.app import app
 from dealfig import extensions
+
 from dealfig import admin, asset_tracker, benefit_tracker, deals, designers, filters, leads, showcase, users
 
 app.register_blueprint(admin.app, url_prefix='/admin')
@@ -22,3 +25,8 @@ app.upload_set_config = PatchedDict()
 # configure_uploads(app, (preview_uploader))
 
 from dealfig import views
+
+# Require the user to be logged in to access any endpoint, except /login
+for endpoint in app.view_functions.keys():
+    if app.view_functions[endpoint].__name__ != "login":
+        app.view_functions[endpoint] = login_required(app.view_functions[endpoint])

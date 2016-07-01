@@ -4,7 +4,7 @@ import string
 from enum import Enum
 
 # While testing, current_user is provided by a constant at the bottom of the page
-# from flask.ext.login import current_user
+from flask.ext.security import current_user
 from sqlalchemy import and_, not_, or_
 
 from dealfig import model
@@ -651,9 +651,3 @@ class _AssetData:
     
     def __eq__(self, other):
         return self.id == other.id
-
-
-def get_or_create_current_user(username="dummy"):
-    return Users.get_or_create("dummy", "admin")
-
-current_user = get_or_create_current_user()

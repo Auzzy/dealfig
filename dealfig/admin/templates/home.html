@@ -43,11 +43,7 @@
                         <td>{{ user.username }}</td>
                         <td>{{ user.role_name }}</td>
                         <td>
-                            {% if user.emails -%}
-                            <a href="mailto:{{ user.emails[0].email }}">{{ user.emails[0].email }}</a>
-                            {%- else -%}
-                            <span>&nbsp;</span>
-                            {%- endif %}
+                            <a href="mailto:{{ user.email }}">{{ user.email }}</a>
                             <div style="position:relative">
                                 <button type="button" class="btn btn-danger delete-user" data-username="{{ user.username }}">Delete</button>
                             </div>
