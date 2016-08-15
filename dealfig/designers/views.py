@@ -12,7 +12,7 @@ def all():
 @app.route("/new", methods=["POST"])
 def new_designer():
     designer = data.Designers.new(request.form["name"], request.form["designer_type"])
-    return url_for("designers.info", designer_name=designer.name)
+    return jsonify({"redirect": url_for("designers.info", designer_name=designer.name)})
 
 @app.route("/<designer_name>")
 @app.route("/<designer_name>/info")
@@ -48,7 +48,7 @@ def update_notes(designer_name):
 @app.route("/<designer_name>/add-contact", methods=["POST"])
 def add_contact(designer_name):
     data.Designers.add_contact(designer_name, request.form["name"], request.form["email"])
-    return ""
+    return jsonify({})
 
 @app.route("/<designer_name>/delete-contact", methods=["POST"])
 def delete_contact(designer_name):

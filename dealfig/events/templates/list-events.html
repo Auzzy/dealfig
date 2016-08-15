@@ -1,0 +1,49 @@
+{% extends "events-layout.html" %}
+
+{% import 'modals.html' as modals %}
+
+{% block content %}
+<div style="width:98%; padding-top:10px">&nbsp;</div>
+
+<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#{{ modals.modal_id('event') }}">
+    New Event...
+</button>
+
+<h3>Events</h3>
+<div style="width:98%; padding-top:50px">
+    <table id="sponsor-table" class="table table-striped advanced-table" style="width:50%;">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Event Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for event in events %}
+            <tr>
+                <td><a href="{{ url_for('events.info', event_name=event.name) }}">{{ event.name }}</a></td>
+                <td>{{ event.start_date }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% with %}
+{% set form_modal_body %}
+<label for="name_input">Name</label>
+<input type="text" class="form-control" id="name_input" placeholder="Name" />
+<label for="start_date_input">Date</label>
+<input type="text" class="form-control" id="start_date_input" placeholder="Date" />
+{% endset %}
+{{ modals.form_modal(modals.modal_id("event"), "New Event", form_modal_body) }}
+{% endwith %}
+{% endblock %}
+
+{% block js %}
+{% with input_map = {"name": {"input": "#name_input"}, "start_date": {"input": "#start_date_input"}} %}
+{{ modals.form_modal_js(modals.modal_id("event"), url_for('events.new_event'), input_map, True)|safe }}
+{% endwith %}
+
+datepicker("start_date_input")
+{% endblock %}

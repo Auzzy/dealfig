@@ -19,6 +19,39 @@
     
     <script type="text/javascript">
         $(document).ready(function() {
+            function datepicker(inputId, outputId, endpoint) {
+                makeDatepicker(inputId, outputId, endpoint, false);
+            }
+            
+            function datepickerButton(inputId, outputId, endpoint) {
+                makeDatepicker(inputId, outputId, endpoint, true);
+            }
+            
+            function makeDatepicker(inputId, outputId, endpoint, button) {
+                var datepickerOptions = {};
+                
+                if (endpoint != undefined) {
+                    datepickerOptions.onSelect = function(date, datepicker) {
+                        $.post(endpoint, { date: date })
+                            .done(function(data) {
+                                $("#" + outputId).text(data);
+                            })
+                            .fail(function( jqXHR, textStatus ) {
+                                alert("Request failed: " + textStatus);
+                            });
+                    };
+                }
+                
+                if (button) {
+                    datepickerOptions.showOn = "button";
+                    datepickerOptions.buttonImage = "{{ url_for('static', filename='img/calendar-small.png') }}";
+                    datepickerOptions.buttonImageOnly = true;
+                    datepickerOptions.buttonText = "Select date";
+                }
+                
+                $("#" + inputId).datepicker(datepickerOptions);
+            }
+            
             $.ajaxSetup({
                 beforeSend: function(xhr, settings) {
                     if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type)) {
@@ -39,6 +72,10 @@
             });
     
             {% block js %}{% endblock %}
+            
+            $(".ui-datepicker-trigger").mouseover(function() {
+                $(this).css('cursor', 'pointer');
+            });
         });
     </script>
     {% endblock %}

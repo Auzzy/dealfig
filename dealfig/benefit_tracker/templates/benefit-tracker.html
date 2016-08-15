@@ -1,0 +1,33 @@
+{% extends "benefit-tracker-layout.html" %}
+
+{% block content %}
+<h3>Benefits Tracker</h3>
+<div style="width:98%; padding-top:50px">
+    <table id="sponsor-table" class="table table-striped advanced-table" style="width:50%;">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for exhibitor in exhibitors %}
+            <tr>
+                <td><a href="{{ url_for('benefit_tracker.benefits', designer=exhibitor.name) }}">{{ exhibitor.name }}</a></td>
+                <td>
+                    {%- if exhibitor.active_deal and active_showcase -%}
+                    Sponsor and Showcase
+                    {%- elif exhibitor.active_deal -%}
+                    Sponsor
+                    {%- else -%}
+                    Showcase
+                    {%- endif -%}
+                </td>
+                <td></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

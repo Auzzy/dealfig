@@ -1,0 +1,27 @@
+{% extends "events-layout.html" %}
+
+{% import 'event-info.html' as event_info with context %}
+
+{% block title %}Event{% endblock %}
+
+{% block header %}<h1>{{ event.name }}</h1>{% endblock %}
+
+{% block content %}
+<div>
+    <ul class="nav nav-tabs" role="tablist">
+        <li role="presentation" class="active"><a href="#details" aria-controls="details" role="tab" data-toggle="tab">Details</a></li>
+    </ul>
+
+    <div class="tab-content">
+        <div role="tabpanel" class="tab-pane active" id="details">
+            <div style="height:20px;">&nbsp;</div>
+            
+            {% include "event-info.html" %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js %}
+{{ event_info.js()|safe }}
+{% endblock %}

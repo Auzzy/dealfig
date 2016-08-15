@@ -45,11 +45,11 @@
 {# Modal for entering text via a text box #}
 {% macro textbox_modal(id, title, default, type='text') %}
 {%- if type == "email" -%}
-{% set title = "Email Address" %}
-{% set pattern = EMAIL_RE %}
+    {% set title = "Email Address" %}
+    {% set pattern = EMAIL_RE %}
 {%- elif type == "url" -%}
-{% set title = "Web Page" %}
-{% set pattern = URL_RE %}
+    {% set title = "Web Page" %}
+    {% set pattern = URL_RE %}
 {%- endif -%}
 {% set form_body %}
 <input id="{{ modal_textbox_id(id) }}" type="{{ type }}" class="form-control" value="{{ default }}" {% if title and pattern %}pattern="{{ pattern }}" title="{{ title }}"{% endif %} />
@@ -109,42 +109,58 @@ $("#{{ save_id }}").click(function() {
     
     var inputObj = {};
     {% for name,selectors in selector_map.items() -%}
-    var value_{{ name }} = process_value($("{{ selectors["input"] }}").val(), $("{{ selectors["input"] }}").attr("type"));
+
+    var values = $("{{ selectors["input"] }}").map(function(index, value) {return $(value).val();}).get();
+
+    var value_{{ name }} = process_value(values, $("{{ selectors["input"] }}").attr("type"));
     if (value_{{ name }} != null) {
         inputObj.{{ name }} = value_{{ name }};
     }
     {%- endfor %}
-    $.post("{{ post_url }}", inputObj)
-        .done(function(data) {
-            {% if redirect %}
-            var redirect_url = process_uri(data);
+
+    $.ajax({
+        type: "POST",
+        url: "{{ post_url }}",
+        data: inputObj,
+        dataType: "json",
+        traditional: true
+    })
+    .done(function(data) {
+        {% if redirect %}
+        if ("redirect" in data) {
+            var redirect_url = process_uri(data["redirect"]);
             if (redirect_url === null) {
                 window.location.reload();
             } else {
                 window.location.href = redirect_url;
             }
-            {% else %}
-            {%- for name,selectors in selector_map.items() %}
-            {%- if selectors.get('display') -%}
-            if (data.hasOwnProperty("{{ name }}")) {
-                var display_{{ name }} = $("{{ selectors['display'] }}");
-                var display_value_{{ name }} = process_value(data["{{ name }}"], $("{{ selectors['input'] }}").attr("type"));
-                if (display_{{ name }}.is("a")) {
-                    var href = $("{{ selectors['input'] }}").attr("type") === "email" ? ("mailto:" + display_value_{{ name }}) : display_value_{{ name }};
-                    display_{{ name }}.attr("href", href);
-                }
-                display_{{ name }}.text(display_value_{{ name }});
-                $("{{ selectors['input'] }}").val(display_value_{{ name }});
+        } else {
+            window.location.reload();
+        }
+        {% else %}
+        {%- for name,selectors in selector_map.items() %}
+        {%- if selectors.get('display') -%}
+        if (data.hasOwnProperty("{{ name }}")) {
+            var display_{{ name }} = $("{{ selectors['display'] }}");
+            var display_value_{{ name }} = process_value(data["{{ name }}"], $("{{ selectors['input'] }}").attr("type"));
+            if (display_{{ name }}.is("a")) {
+                var href = $("{{ selectors['input'] }}").attr("type") === "email" ? ("mailto:" + display_value_{{ name }}) : display_value_{{ name }};
+                display_{{ name }}.attr("href", href);
             }
-            {%- endif -%}
-            {%- endfor %}
-            {% endif %}
-        })
-        .always(function() {
-            $("#{{ id }}").modal("hide");
-            $("#{{ save_id }}").removeAttr("disabled");
-            $("#{{ cancel_id }}").removeAttr("disabled");
-        });
+            display_{{ name }}.text(display_value_{{ name }});
+        }
+        {%- endif -%}
+        {%- endfor %}
+        {% endif %}
+    })
+    .fail(function(jqXHR, textStatus, errorThrown) {
+        alert(errorThrown);
+    })
+    .always(function() {
+        $("#{{ id }}").modal("hide");
+        $("#{{ save_id }}").removeAttr("disabled");
+        $("#{{ cancel_id }}").removeAttr("disabled");
+    });
 });
 {% endwith %}
 {% endmacro %}

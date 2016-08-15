@@ -7,9 +7,9 @@
         </tr>
     </thead>
     <tbody>
-        {% for deal in designer.deals|sort(True, attribute="year") %}
+        {% for deal in designer.deals|sort(True, attribute="event.name") %}
         <tr>
-            <td><a href="{{ url_for('deals.info', designer=designer.name, year=deal.year) }}">{{ deal.year }}</a></td>
+            <td><a href="{{ url_for('deals.info', designer=designer.name, event_name=deal.event.name) }}">{{ deal.event.name }}</a></td>
             <td>{{ deal.owner }}</td>
             <td>{{ deal.level }}</td>
         </tr>

@@ -3,10 +3,12 @@ import datetime
 import re
 import sys
 
-from flask.ext.sqlalchemy import event, SQLAlchemy
+from sqlalchemy.ext.declarative import declared_attr
+from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.security import Security, SQLAlchemyUserDatastore, UserMixin, RoleMixin
 from wtforms.validators import ValidationError
 
+from dealfig import forms
 from dealfig.app import app
 
 db = SQLAlchemy(app)
@@ -31,19 +33,58 @@ lead_status_to_lead_status = db.Table('lead_status_to_lead_status',
     db.Column('status_to_id', db.Integer, db.ForeignKey('lead_status.id'), primary_key=True)
 )
 
-asset_definition_to_file_format = db.Table('asset_definition_to_file_format',
-    db.Column('asset_definition_id', db.Integer, db.ForeignKey('asset_definition.id')),
+showcase_benefit_to_image_asset_definition = db.Table('showcase_benefit_to_image_asset_definition',
+    db.Column('showcase_beneit_id', db.Integer, db.ForeignKey('showcase_benefit.id')),
+    db.Column('image_asset_definition_id', db.Integer, db.ForeignKey('image_asset_definition.id'))
+)
+
+showcase_benefit_to_text_asset_definition = db.Table('showcase_benefit_to_text_asset_definition',
+    db.Column('showcase_benefit_id', db.Integer, db.ForeignKey('showcase_benefit.id')),
+    db.Column('text_asset_definition_id', db.Integer, db.ForeignKey('text_asset_definition.id'))
+)
+
+sponsor_benefit_to_image_asset_definition = db.Table('sponsor_benefit_to_image_asset_definition',
+    db.Column('sponsor_beneit_id', db.Integer, db.ForeignKey('sponsor_benefit.id')),
+    db.Column('image_asset_definition_id', db.Integer, db.ForeignKey('image_asset_definition.id'))
+)
+
+sponsor_benefit_to_text_asset_definition = db.Table('sponsor_benefit_to_text_asset_definition',
+    db.Column('sponsor_id', db.Integer, db.ForeignKey('sponsor_benefit.id')),
+    db.Column('text_asset_definition_id', db.Integer, db.ForeignKey('text_asset_definition.id'))
+)
+
+image_asset_definition_to_file_format = db.Table('asset_definition_to_file_format',
+    db.Column('image_asset_definition_id', db.Integer, db.ForeignKey('image_asset_definition.id')),
     db.Column('file_format_id', db.Integer, db.ForeignKey('file_format.id'))
 )
 
-asset_definition_to_media_type = db.Table('asset_definition_to_media_type',
-    db.Column('asset_definition_id', db.Integer, db.ForeignKey('asset_definition.id')),
-    db.Column('media_type_id', db.Integer, db.ForeignKey('media_type.id'))
+asset_to_image_asset_definition = db.Table('asset_to_image_asset_definition',
+    db.Column('image_asset_id', db.Integer, db.ForeignKey('image_asset.id')),
+    db.Column('image_asset_definition_id', db.Integer, db.ForeignKey('image_asset_definition.id'))
 )
 
 user_to_role = db.Table('user_to_role',
-        db.Column('user_id', db.Integer(), db.ForeignKey('user.id')),
-        db.Column('user_role_id', db.Integer(), db.ForeignKey('user_role.id')))
+    db.Column('user_id', db.Integer(), db.ForeignKey('user.id')),
+    db.Column('user_role_id', db.Integer(), db.ForeignKey('user_role.id'))
+)
+
+class Event(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(250), nullable=False)
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date)
+    start_time = db.Column(db.Time)
+    end_time = db.Column(db.Time)
+    location = db.Column(db.String(200), default="")
+    description = db.Column(db.Text, default="")
+    active = db.Column(db.Boolean)
+    
+    leads = db.relationship("Lead", backref="event", lazy="dynamic")
+    showcase = db.relationship("Showcase", backref="event", lazy="dynamic")
+    
+    __table_args__ = (
+        db.Index('one_active_event', id, active, unique=True, postgresql_where=(~active)),
+    )
 
 class Designer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -55,12 +96,11 @@ class Designer(db.Model):
     contacts = db.relationship("Contact", secondary=designers_to_contacts, lazy="dynamic")
     leads = db.relationship("Lead", cascade="all, delete-orphan", passive_updates=False, backref="designer", lazy="dynamic")
     showcase = db.relationship("Showcase", uselist=False, backref="designer")
-    exhibitor = db.relationship("Exhibitor", uselist=False, backref="designer")
 
     @property
     def active_lead(self):
-        return self.leads.filter_by(year=datetime.datetime.today().year).first()
-    
+        return self.leads.join(Lead.event).filter_by(active=True).first()
+
     @property
     def active_deal(self):
         return self.active_lead.deal
@@ -71,10 +111,7 @@ class Designer(db.Model):
     
     @property
     def active_showcase(self):
-        if self.showcase and self.showcase.year == datetime.datetime.today().year:
-            return self.showcase
-        else:
-            return None
+        return self.showcase.join(Showcase.event).filter_by(active=True).first()
 
 class Lead(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -89,6 +126,8 @@ class Lead(db.Model):
     comments = db.relationship("Comment", cascade="all, delete-orphan", passive_updates=False, backref="lead", lazy="dynamic")
     contacts = db.relationship("Contact", secondary=leads_to_contacts)
     deal = db.relationship("Deal", uselist=False, backref="lead")
+    
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id'))
 
 class Deal(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -108,8 +147,8 @@ class Deal(db.Model):
         return self.lead.designer
     
     @property
-    def year(self):
-        return self.lead.year
+    def event(self):
+        return self.lead.event
     
     @property
     def contract_signed(self):
@@ -126,14 +165,8 @@ class Showcase(db.Model):
     game_name = db.Column(db.String(160), default="")
     game_homepage = db.Column(db.String(200), default="")
     game_description = db.Column(db.Text(), default="")
-
-class Exhibitor(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    designer_id = db.Column(db.Integer, db.ForeignKey('designer.id'), nullable=False)
-    level_id = db.Column(db.Integer, db.ForeignKey('deal_level.id'))
-    level = db.relationship("DealLevel")
-    type = db.Column(db.String(20))
-    assets = db.relationship("Asset", cascade="all, delete-orphan", passive_updates=False, backref="exhibitor", lazy="dynamic")
+    
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id'))
 
 class Contact(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -161,64 +194,78 @@ class Invoice(db.Model):
     sent = db.Column(db.Date)
     paid = db.Column(db.Date)
 
-class AssetDefinition(db.Model):
+class Benefit:
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False)
+
+class ShowcaseBenefit(db.Model, Benefit):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False, unique=True)
+    image_assets = db.relationship("ImageAssetDefinition", secondary=showcase_benefit_to_image_asset_definition)
+    text_assets = db.relationship("TextAssetDefinition", secondary=showcase_benefit_to_text_asset_definition)
+
+class SponsorBenefit(db.Model, Benefit):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False, unique=True)
+    image_assets = db.relationship("ImageAssetDefinition", secondary=sponsor_benefit_to_image_asset_definition)
+    text_assets = db.relationship("TextAssetDefinition", secondary=sponsor_benefit_to_text_asset_definition)
     level_id = db.Column(db.Integer, db.ForeignKey('deal_level.id'), nullable=False)
     level = db.relationship("DealLevel")
-    type = db.Column(db.String(20), nullable=False) # text, logo, or image
-    media_types = db.relationship("MediaType", secondary=asset_definition_to_media_type)
-    formats = db.relationship("FileFormat", secondary=asset_definition_to_file_format)
+
+class ImageAssetDefinition(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False, unique=True)
+    palette = db.Column(db.Enum("color", "black & white", native_enum=False))
+    width = db.Column(db.Float)
+    height = db.Column(db.Float)
+    size_unit = db.Column(db.Enum("inches", "pixels", native_enum=False))
+    dpi = db.Column(db.Integer)
+    formats = db.relationship("FileFormat", secondary=image_asset_definition_to_file_format)
+
+    __table_args__ = (
+        db.CheckConstraint("(width IS NULL AND height IS NULL AND size_unit IS NULL) OR (width IS NOT NULL AND height IS NOT NULL AND size_unit IS NOT NULL)"),
+    )
+
+class TextAssetDefinition(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), nullable=False, unique=True)
+    max_length = db.Column(db.Integer)
 
 class FileFormat(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(30))
     ext = db.Column(db.String(10), unique=True)
 
-class MediaType(db.Model):
+class ImageAsset(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False)
-    location = db.Column(db.String(50))
-    
-    @property
-    def display_name(self):
-        if self.location:
-            return "{} - {}".format(self.name, self.location)
-        else:
-            return self.name
-
-class Asset(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    exhibitor_id = db.Column(db.Integer, db.ForeignKey('exhibitor.id'), nullable=False)
     timestamp = db.Column(db.DateTime, nullable=False)
     filename = db.Column(db.String(256), nullable=False)
-    type = db.Column(db.String(20), nullable=False) # text, logo, or image
-    media_type_id = db.Column(db.Integer, db.ForeignKey('media_type.id'))
-    media_type = db.relationship("MediaType") # A value of null indicates no restrictions on usage
-    format_id = db.Column(db.Integer, db.ForeignKey('file_format.id'), nullable=False)
-    format = db.relationship("FileFormat")
+    definitions = db.relationship('ImageAssetDefinition', secondary=asset_to_image_asset_definition, backref=db.backref('assets', lazy='dynamic'))
 
-class UserRole(db.Model, RoleMixin):
-    id = db.Column(db.Integer(), primary_key=True)
-    name = db.Column(db.String(80), nullable=False, unique=True)
-    description = db.Column(db.String(255))
-    
+class TextAsset(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime, nullable=False)
+    content = db.Column(db.Text(), nullable=False)
+
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String(50), nullable=False, default='')
     last_name = db.Column(db.String(50), nullable=False, default='')
     email = db.Column(db.String(255), nullable=False, unique=True)
+    username = db.Column(db.String(255), unique=True, index=True)
     password = db.Column(db.String(255), nullable=False, default='')
     active = db.Column(db.Boolean(), nullable=False, default=True)
     roles = db.relationship('UserRole', secondary=user_to_role, backref=db.backref('users', lazy='dynamic'))
     
     comments = db.relationship("Comment", back_populates="user", cascade="all, delete-orphan")
-    
-    # Note that this property is only to keep all consumers happy until I enable username login, at which point a username field will be added
-    @property
-    def username(self):
-        return self.email.split('@')[0]
 
+    @property
+    def role_names(self):
+        return [role.name for role in self.roles]
+
+    @property
+    def role_names_str(self):
+        return ", ".join(self.role_names)
+    
     @property
     def key(self):
         return self.username
@@ -266,6 +313,11 @@ class DealLevel(db.Model):
     def __str__(self):
         return self.name
 
+class UserRole(db.Model, RoleMixin):
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(80), nullable=False, unique=True)
+    description = db.Column(db.String(255))
+
 def password_validator(form, field):
     password = field.data
     if len(password) < 6:
@@ -273,18 +325,15 @@ def password_validator(form, field):
 
 # Setup Flask-Security
 user_datastore = SQLAlchemyUserDatastore(db, User, UserRole)
-user_manager = Security(app, user_datastore)
-'''
-if not hasattr(app, "user_manager"):
-    db_adapter = SQLAlchemyAdapter(db, User, UserAuthClass=UserAuth, UserEmailClass=UserEmail)
-    user_manager = UserManager(db_adapter, app, password_validator=password_validator)
-'''
+user_manager = Security(app, user_datastore, login_form=forms.UsernameEmailLoginForm)
 
 def _create():
     db.create_all()
     _init_lead_status()
     _init_designer_type()
     _init_deal_level()
+    _init_user_role()
+    _init_benefits()
 
 def _init_lead_status():
     call = LeadStatus(name="To Call")
@@ -301,13 +350,7 @@ def _init_lead_status():
     declined.transitions = [talking]
     pulled_out.transitions = [talking]
     
-    db.session.add(call)
-    db.session.add(reached_out)
-    db.session.add(talking)
-    db.session.add(verbal)
-    db.session.add(declined)
-    db.session.add(pulled_out)
-    db.session.commit()
+    _add_if_missing([call, reached_out, talking, verbal, declined, pulled_out], LeadStatus, "name")
 
 def _init_designer_type():
     digital = DesignerType(name="digital")
@@ -316,23 +359,71 @@ def _init_designer_type():
     media = DesignerType(name="media")
     charity = DesignerType(name="charity")
     
-    db.session.add(digital)
-    db.session.add(tabletop)
-    db.session.add(artist)
-    db.session.add(media)
-    db.session.add(charity)
-    db.session.commit()
+    _add_if_missing([digital, tabletop, artist, media, charity], DesignerType, "name")
 
 def _init_deal_level():
     indie = DealLevel(name="indie")
-    copper = DealLevel(name="copper")
+    indie = DealLevel(name="indie plus")
+    bronze = DealLevel(name="bronze")
     silver = DealLevel(name="silver")
     gold = DealLevel(name="gold")
     platinum = DealLevel(name="platinum")
     
-    db.session.add(indie)
-    db.session.add(copper)
-    db.session.add(silver)
-    db.session.add(gold)
-    db.session.add(platinum)
+    _add_if_missing([indie, bronze, silver, gold, platinum], DealLevel, "name")
+
+def _init_user_role():
+    admin = UserRole(name="admin", description="An administrator of the site. They have full permissions to see and modify everything.")
+    sales = UserRole(name="sales", description="A member of the sales team. Can be assigned a lead or deal, as well as update its status.")
+    marketing = UserRole(name="marketing", description="Able to see the deal's state, as well as the benefits that deal affords them. Can also upload assets assocaited with a deal.")
+    
+    _add_if_missing([admin, sales, marketing], UserRole, "name")
+
+def _init_benefits():
+    def _init_benefits_file_formats():
+        png_format = FileFormat(name="PNG", ext="png")
+        pdf_format = FileFormat(name="PDF", ext="pdf")
+        
+        _add_if_missing([png_format, pdf_format], FileFormat, "ext")
+    
+    def _init_benefits_asset_definitions():
+        png_format = FileFormat.query.filter_by(ext="png").one()
+        pdf_format = FileFormat.query.filter_by(ext="pdf").one()
+        
+        description_def = TextAssetDefinition(name="Description")
+        website_def = TextAssetDefinition(name="Website")
+        logo_def = ImageAssetDefinition(name="Logo", palette="color", formats=[png_format])
+        quarter_page_ad = ImageAssetDefinition(name="Quarter Page Ad", palette="black & white", width="8.5", height="2.5", size_unit="inches", formats=[png_format, pdf_format])
+        half_page_ad = ImageAssetDefinition(name="Half Page Ad", palette="black & white", width="8.5", height="5.5", size_unit="inches", formats=[png_format, pdf_format])
+        full_page_ad = ImageAssetDefinition(name="Full Page Ad", palette="color", width="8", height="11", size_unit="inches", formats=[png_format, pdf_format])
+        two_page_ad = ImageAssetDefinition(name="Double-wide Ad", palette="color", width="16", height="11", size_unit="inches",  formats=[png_format, pdf_format])
+        
+        _add_if_missing([logo_def, quarter_page_ad, half_page_ad, full_page_ad, two_page_ad], ImageAssetDefinition, "name")
+        _add_if_missing([description_def, website_def], TextAssetDefinition, "name")
+    
+    _init_benefits_file_formats()
+    _init_benefits_asset_definitions()
+
+    description_def = TextAssetDefinition.query.filter_by(name="Description").one()
+    website_def = TextAssetDefinition.query.filter_by(name="Website").one()
+    logo_def = ImageAssetDefinition.query.filter_by(name="Logo").one()
+    quarter_page_ad = ImageAssetDefinition.query.filter_by(name="Quarter Page Ad").one()
+    half_page_ad = ImageAssetDefinition.query.filter_by(name="Half Page Ad").one()
+    full_page_ad = ImageAssetDefinition.query.filter_by(name="Full Page Ad").one()
+    two_page_ad = ImageAssetDefinition.query.filter_by(name="Double-wide Ad").one()
+
+    indie = SponsorBenefit(name="Indie Benefits", level=DealLevel.query.filter_by(name="indie").one(), image_assets=[logo_def], text_assets=[description_def, website_def])
+    indie_plus = SponsorBenefit(name="Indie Plus Benefits", level=DealLevel.query.filter_by(name="indie plus").one(), image_assets=indie.image_assets, text_assets=indie.text_assets)
+    bronze = SponsorBenefit(name="Bronze Benefits", level=DealLevel.query.filter_by(name="bronze").one(), image_assets=indie.image_assets + [quarter_page_ad], text_assets=indie.text_assets)
+    silver = SponsorBenefit(name="Silver Benefits", level=DealLevel.query.filter_by(name="silver").one(), image_assets=indie.image_assets + [half_page_ad], text_assets=indie.text_assets)
+    gold = SponsorBenefit(name="Gold Benefits", level=DealLevel.query.filter_by(name="gold").one(), image_assets=indie.image_assets + [full_page_ad], text_assets=indie.text_assets)
+    platinum = SponsorBenefit(name="Platinum Benefits", level=DealLevel.query.filter_by(name="platinum").one(), image_assets=indie.image_assets + [two_page_ad], text_assets=indie.text_assets)
+    showcase = ShowcaseBenefit(name="Showcase Benefits", image_assets=indie.image_assets, text_assets=indie.text_assets)
+
+    _add_if_missing([indie, indie_plus, bronze, silver, gold, platinum], SponsorBenefit, "name")
+    _add_if_missing([showcase], ShowcaseBenefit, "name")
+
+def _add_if_missing(rows, Table, column="name"):
+    for row in rows:
+        if not db.session.query(db.exists().where(getattr(Table, column) == getattr(row, column))).scalar():
+            db.session.add(row)
     db.session.commit()

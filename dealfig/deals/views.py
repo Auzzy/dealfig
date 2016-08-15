@@ -8,9 +8,9 @@ from dealfig.deals import app
 DATE_FORMAT = "%m/%d/%Y"
 
 @app.route("/")
-@app.route("/list/<year>")
-def all(year=None):
-    return render_template("list-deals.html", deals=data.Deals.get_by_year(year))
+@app.route("/list/<event_name>")
+def all(event_name=None):
+    return render_template("list-deals.html", deals=data.Deals.get_by_event(event_name))
 
 @app.route("/<designer>/create", methods=["POST"])
 def create(designer):
@@ -18,9 +18,9 @@ def create(designer):
     return redirect(url_for('deals.info', designer=designer))
 
 @app.route("/<designer>/")
-@app.route("/<designer>/<year>")
-def info(designer, year=None):
-    deal = data.Deals.get_by_designer(designer, year)
+@app.route("/<designer>/<event_name>")
+def info(designer, event_name=None):
+    deal = data.Deals.get_by_designer(designer, event_name)
     owner_list = data.Users.get_all()
     level_list = data.DealLevels.get_all()
     return render_template("deal-info.html", deal=deal, owner_list=owner_list, level_list=level_list)

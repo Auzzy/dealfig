@@ -1,0 +1,36 @@
+{% import 'modals.html' as modals %}
+
+<div style="font-weight: bold;">Event Date</div>
+<span id="date-display" style="margin-left:25px;">
+    {{ event.start_date|date }}
+</span>
+<input type="hidden" id="start-date-datepicker" />
+
+<div style="height: 10px;"></div>
+
+<div style="font-weight: bold;">Location
+    <button type="button" class="btn btn-info btn-xs" data-toggle="modal" data-target="#{{ modals.modal_id('location') }}">
+        <span class="glyphicon glyphicon-pencil"></span> Edit 
+    </button>
+</div>
+<div id="location-display" style="margin-left:25px; min-height:1em; white-space:pre;">{{ event.location }}</div>
+
+<div style="height: 10px;"></div>
+
+<div style="font-weight: bold;">Description
+    <button type="button" class="btn btn-info btn-xs" data-toggle="modal" data-target="#{{ modals.modal_id('description') }}">
+        <span class="glyphicon glyphicon-pencil"></span> Edit
+    </button>
+</div>
+<div id="description-display" style="margin-left:25px; min-height:1em; white-space:pre;">{{ event.description|escape }}</div>
+
+<!-- Input modals -->
+{{ modals.textbox_modal(modals.modal_id('location'), "Location", event.location) }}
+{{ modals.textarea_modal(modals.modal_id('description'), "Description", event.description) }}
+
+{% macro js() %}
+{{ modals.textbox_modal_js(modals.modal_id('location'), url_for('events.update_location', event_name=event.name), "location-display")|safe }}
+{{ modals.textarea_modal_js(modals.modal_id('description'), url_for('events.update_description', event_name=event.name), "description-display")|safe }}
+
+datepickerButton("start-date-datepicker", "date-display", "{{ url_for('events.update_start_date', event_name=event.name) }}");
+{% endmacro %}

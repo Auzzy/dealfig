@@ -2,6 +2,12 @@
 {% import 'components.html' as components %}
 {% import 'modals.html' as modals %}
 
+{% block title %}Designers{% endblock %}
+
+{% block header %}
+<h1>Designers</h1>
+{% endblock %}
+
 {% block content %}
 
 <div style="width:98%; padding-top:10px">&nbsp;</div>
@@ -11,11 +17,13 @@
 </button>
 
 <div style="width:98%; padding-top:30px">
-    <table id="sponsor-table" class="table table-striped advanced-table">
+    <table id="sponsor-table" class="table table-striped advanced-table" style="width:50%;">
         <thead>
             <tr>
                 <th>Name</th>
                 <th>Designer Type</th>
+                <th>Active Lead</th>
+                <th>Actiev Deal</th>
             </tr>
         </thead>
         <tbody>
@@ -23,6 +31,16 @@
             <tr style="text-align:center;">
                 <td style="text-align:left;"><a href="{{ url_for('designers.info', designer_name=designer.name) }}">{{ designer.name }}</a></td>
                 <td style="text-align:left;">{{ designer.type }}</td>
+                {% if designer.active_lead -%}
+                <td style="background-color: lime;">{{ designer.active_lead.status }}</td>
+                {%- else -%}
+                <td style="background-color: red;">No</td>
+                {%- endif %}
+                {% if designer.active_deal -%}
+                <td style="background-color: lime;">{{ designer.active_deal.level or "Yes" }}</td>
+                {%- else -%}
+                <td style="background-color: red;">No</td>
+                {%- endif %}
             </tr>
             {% endfor %}
         </tbody>
@@ -45,7 +63,7 @@
 
 {{ components.radio_group(modals.modal_id("designer"))|safe }}
 
-{% set input_map = {"name": {"input": "#name_input"}, "designer_type": {"input": components.active_selector(modals.modal_id("designer"))}} %}
+{% with input_map = {"name": {"input": "#name_input"}, "designer_type": {"input": components.active_selector(modals.modal_id("designer"))}} %}
 {{ modals.form_modal_js(modals.modal_id("designer"), url_for('designers.new_designer'), input_map, True)|safe }}
-
+{% endwith %}
 {% endblock %}

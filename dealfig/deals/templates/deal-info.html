@@ -44,28 +44,24 @@
 <div id="notes-display" style="margin-left:25px; white-space:pre;">{{ deal.notes|escape }}</div>
 
 <h3>Contract</h3>
-<div style="float:left;">
+<div style="float:left; margin-right: 50px;">
     <span style="font-weight: bold;">Sent: </span>
     <span id="contract-sent-date">{% if deal.contract.sent %}{{ deal.contract.sent|date }}{% else %}Not sent{% endif %}</span>
     <input type="hidden" id="contract-sent-datepicker" />
 </div>
-<div style="float:left; width:50px;">&nbsp;</div>
-<div style="float:left;">
+<div>
     <span style="font-weight: bold;">Signed: </span>
     <span id="contract-signed-date">{% if deal.contract.signed %}{{ deal.contract.signed|date }}{% else %}Not signed{% endif %}</span>
     <input type="hidden" id="contract-signed-datepicker" />
 </div>
 
-<div style="both:clear;">&nbsp;</div>
-
 <h3>Invoice</h3>
-<div style="float:left;">
+<div style="float:left; margin-right: 50px;">
     <span style="font-weight: bold;">Sent: </span>
     <span id="invoice-sent-date">{% if deal.invoice.sent %}{{ deal.invoice.sent|date }}{% else %}Not sent{% endif %}</span>
     <input type="hidden" id="invoice-sent-datepicker" />
 </div>
-<div style="float:left; width:50px;">&nbsp;</div>
-<div style="float:left;">
+<div>
     <span style="font-weight: bold;">Paid: </span>
     <span id="invoice-paid-date">{% if deal.invoice.paid %}{{ deal.invoice.paid|date }}{% else %}Not paid{% endif %}</span>
     <input type="hidden" id="invoice-paid-datepicker" />
@@ -85,34 +81,10 @@
 {% endblock %}
 
 {% block js %}
-function makeDatepicker(inputId, outputId, endpoint) {
-    var datepickerOptions = {
-        showOn: "button",
-        buttonImage: "{{ url_for('static', filename='img/calendar-small.png') }}",
-        buttonImageOnly: true,
-        buttonText: "Select date",
-        onSelect: function(date, datepicker) {
-            $.post(endpoint, { date: date })
-                .done(function(data) {
-                    $("#" + outputId).text(data);
-                })
-                .fail(function( jqXHR, textStatus ) {
-                    alert("Request failed: " + textStatus);
-                });
-        }
-    }
-    
-    $("#" + inputId).datepicker(datepickerOptions);
-}
-
-makeDatepicker("contract-sent-datepicker", "contract-sent-date", "{{ url_for('deals.contract_sent', designer=deal.designer.name) }}")
-makeDatepicker("contract-signed-datepicker", "contract-signed-date", "{{ url_for('deals.contract_signed', designer=deal.designer.name) }}")
-makeDatepicker("invoice-sent-datepicker", "invoice-sent-date", "{{ url_for('deals.invoice_sent', designer=deal.designer.name) }}")
-makeDatepicker("invoice-paid-datepicker", "invoice-paid-date", "{{ url_for('deals.invoice_paid', designer=deal.designer.name) }}")
-
-$(".ui-datepicker-trigger").mouseover(function() {
-    $(this).css('cursor', 'pointer');
-});
+datepickerButton("contract-sent-datepicker", "contract-sent-date", "{{ url_for('deals.contract_sent', designer=deal.designer.name) }}")
+datepickerButton("contract-signed-datepicker", "contract-signed-date", "{{ url_for('deals.contract_signed', designer=deal.designer.name) }}")
+datepickerButton("invoice-sent-datepicker", "invoice-sent-date", "{{ url_for('deals.invoice_sent', designer=deal.designer.name) }}")
+datepickerButton("invoice-paid-datepicker", "invoice-paid-date", "{{ url_for('deals.invoice_paid', designer=deal.designer.name) }}")
 
 <!-- Modal JavaScript -->
 {{ modals.list_modal_js(modals.modal_id('owner'), url_for('deals.update_owner', designer=deal.designer.name), "owner-display")|safe }}

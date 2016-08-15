@@ -4,9 +4,9 @@ from dealfig import data
 from dealfig.showcase import app
 
 @app.route("/")
-@app.route("/list/<year>")
-def all(year=None):
-    showcase = data.Showcases.get_by_year(year)
+@app.route("/list/<event_name>")
+def all(event_name=None):
+    showcase = data.Showcases.get_by_event(event_name)
     return render_template("list-showcase.html", showcase=showcase)
 
 @app.route("/<designer>")

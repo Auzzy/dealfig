@@ -15,10 +15,10 @@ SECRET_KEY = "e211788b-355d-4da4-844c-d7a244992a43"
 
 # Flask-Security
 # SECURITY_USER_IDENTITY_ATTRIBUTES = "username"    # I can enable this to allow login via username (http://stackoverflow.com/a/36929329/6516357)
+# SECURITY_USER_IDENTITY_ATTRIBUTES = ("username", "email")
 SECURITY_PASSWORD_HASH = "bcrypt"
 SECURITY_PASSWORD_SALT = "hello"
 SECURITY_EMAIL_SENDER = "sponsors@bostonfig.com"
-
 SECURITY_RECOVERABLE = True
 SECURITY_CHANGEABLE = True
 SECURITY_TRACKABLE = False # Maybe check out tracking once I get this running

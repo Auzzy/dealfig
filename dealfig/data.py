@@ -4,10 +4,85 @@ import string
 from enum import Enum
 
 # While testing, current_user is provided by a constant at the bottom of the page
-from flask.ext.security import current_user
+from flask.ext.security import current_user, utils
 from sqlalchemy import and_, not_, or_
 
 from dealfig import model
+
+# Note that this object doesn't currently expose the end_date, start_time, or
+# end_time properties of the underlying Event table. They are present in the
+# model only to make future implementation super easy.
+class Events:
+    @staticmethod
+    def get_all():
+        return model.Event.query.all()
+    
+    @staticmethod
+    def _get(name):
+        return model.Event.query.filter_by(name=name).first()
+    
+    @staticmethod
+    def get_by_name(event_name):
+        return Events._get(event_name) if event_name else Events.active()
+
+    @staticmethod
+    def get_or_create(name, start_date):
+        event = Events._get(name)
+        if not event:
+            event = model.Event(name=name, start_date=start_date)
+            model.db.session.add(event)
+            model.db.session.commit()
+        return event
+    
+    @staticmethod
+    def active():
+        return model.Event.query.filter_by(active=True).first()
+    
+    @staticmethod
+    def new(name, start_date):
+        return Events.get_or_create(name, start_date)
+
+    @staticmethod
+    def update_start_date(name, start_date):
+        event = Events._get(name)
+        event.start_date = start_date
+        model.db.session.commit()
+        return event.start_date
+    
+    @staticmethod
+    def update_end_date(name, end_date):
+        event = Events._get(name)
+        event.end_date = end_date
+        model.db.session.commit()
+        return event.end_date
+    
+    @staticmethod
+    def update_start_time(name, start_time):
+        event = Events._get(name)
+        event.start_time = start_time
+        model.db.session.commit()
+        return event.start_time
+    
+    @staticmethod
+    def update_end_time(name, end_time):
+        event = Events._get(name)
+        event.end_time = end_time
+        model.db.session.commit()
+        return event.end_time
+    
+    @staticmethod
+    def update_location(name, location):
+        event = Events._get(name)
+        event.location = location
+        model.db.session.commit()
+        return event.location
+    
+    @staticmethod
+    def update_description(name, description):
+        event = Events._get(name)
+        event.description = description
+        model.db.session.commit()
+        return event.description
 
 class Designers:
     @staticmethod
@@ -21,14 +96,12 @@ class Designers:
     @staticmethod
     def get_or_create(name, type_name):
         designer = Designers.get_by_name(name)
-        if designer:
-            return designer
-        else:
+        if not designer:
             designer_type = DesignerTypes.get(type_name)
             designer = model.Designer(name=name, type=designer_type)
             model.db.session.add(designer)
             model.db.session.commit()
-            return designer
+        return designer
     
     @staticmethod
     def new(name, type_name):
@@ -79,34 +152,32 @@ class Leads:
         return model.Lead.query.all()
 
     @staticmethod
-    def _get(designer, year=None):
-        if not designer:
+    def _get(designer, event):
+        if not designer or not event:
             return None
 
-        year = year or datetime.datetime.today().year
-        return model.Lead.query.filter_by(designer_id=designer.id, year=year).first()
-    
-    @staticmethod
-    def get_by_designer(designer_name, year=None):
-        designer = Designers.get_by_name(designer_name)
-        return Leads._get(designer, year)
-    
-    @staticmethod
-    def get_by_year(year=None):
-        year = year or datetime.datetime.today().year
-        return model.Lead.query.filter_by(year=year).all()
+        return event.leads.filter_by(designer_id=designer.id).first()
 
     @staticmethod
-    def get_or_create(designer_name, year=None):
+    def get_by_designer(designer_name, event_name=None):
         designer = Designers.get_by_name(designer_name)
-        lead = Leads._get(designer, year)
-        if lead:
-            return lead
-        else:
-            lead = model.Lead(year=datetime.datetime.today().year, status=LeadStatus.get_initial())
+        event = Events.get_by_name(event_name)
+        return Leads._get(designer, event)
+
+    @staticmethod
+    def get_by_event(event_name=None):
+        return Events.get_by_name(event_name).leads
+
+    @staticmethod
+    def get_or_create(designer_name):
+        designer = Designers.get_by_name(designer_name)
+        event = Events.active()
+        lead = Leads._get(designer, event)
+        if not lead:
+            lead = model.Lead(year=datetime.datetime.today().year, status=LeadStatus.get_initial(), event=event)
             designer.leads.append(lead)
             model.db.session.commit()
-            return lead
+        return lead
     
     @staticmethod
     def update_status(designer_name, status_name):
@@ -151,30 +222,28 @@ class Comments:
 
 class Deals:
     @staticmethod
-    def get_by_designer(name, year=None):
-        lead = Leads.get_by_designer(name, year)
+    def get_by_designer(name, event_name=None):
+        lead = Leads.get_by_designer(name, event_name)
         if not lead:
             return None
         return lead.deal
-    
+
     @staticmethod
-    def get_by_year(year=None):
-        year = year or datetime.datetime.today().year
-        return model.Deal.query.filter(model.Deal.lead_id == model.Lead.id and model.Lead.year == year).all()
-    
+    def get_by_event(event_name=None):
+        event = Events.get_by_name(event_name)
+        return [lead.deal for lead in event.leads if lead.deal]
+
     @staticmethod
-    def get_or_create(designer, year=None):
-        lead = Leads.get_by_designer(designer, year)
+    def get_or_create(designer):
+        lead = Leads.get_by_designer(designer)
         if not lead:
             return None
 
         deal = lead.deal
-        if deal:
-            return deal
-        else:
+        if not deal:
             lead.deal = Deals.create()
             model.db.session.commit()
-            return deal
+        return deal
     
     @staticmethod
     def create():
@@ -241,38 +310,36 @@ class Deals:
 
 class Showcases:
     @staticmethod
-    def _get(designer, year=None):
-        if not designer:
+    def _get(designer, event):
+        if not designer or not event:
             return None
-
-        year = datetime.datetime.today().year
-        return model.Showcase.query.filter_by(designer_id=designer.id).first()
+        
+        return event.showcase.filter_by(designer_id=designer.id).first()
     
     @staticmethod
     def get_all():
         return model.Showcase.query.all()
 
     @staticmethod
-    def get_by_year(year=None):
-        year = year or datetime.datetime.today().year
-        return model.Showcase.query.filter_by(year=year)
+    def get_by_event(event_name=None):
+        return Events.get_by_name(event_name).showcase
     
     @staticmethod
-    def get_by_designer(designer_name, year=None):
+    def get_by_designer(designer_name, event_name=None):
         designer = Designers.get_by_name(designer_name)
-        return Showcases._get(designer, year)
+        event = Events.get_by_name(event_name)
+        return Showcases._get(designer, event)
     
     @staticmethod
     def get_or_create(designer_name):
         designer = Designers.get_by_name(designer_name)
-        showcase = Showcases._get(designer)
-        if showcase:
-            return showcase
-        else:
-            showcase = model.Showcase(year=datetime.datetime.today().year)
+        event = Events.active()
+        showcase = Showcases._get(designer, event)
+        if not showcase:
+            showcase = model.Showcase(year=datetime.datetime.today().year, event=event)
             designer.showcase = showcase
             model.db.session.commit()
-            return showcase
+        return showcase
 
     def update_name(designer_name, game_name):
         showcase = Showcases.get_by_designer(designer_name)
@@ -302,38 +369,6 @@ class Showcases:
         model.db.session.commit()
         return str(showcase.game_description)
 
-class Exhibitor:
-    @staticmethod
-    def get_all():
-        return [
-            Exhibitor.get_by_designer("Foo 1"),
-            Exhibitor.get_by_designer("Foo 4"),
-            Exhibitor.get_by_designer("Foo 9")
-        ]
-    
-    @staticmethod
-    def get_by_year(year=None):
-        return [
-            Exhibitor.get_by_designer("Foo 1"),
-            Exhibitor.get_by_designer("Foo 4"),
-            Exhibitor.get_by_designer("Foo 9")
-        ]
-    
-    @staticmethod
-    def get_by_designer(name):
-        if name == "Foo 1":
-            return _ExhibitorData(_DesignerData(name), "bronze", "sponsor")
-        elif name == "Foo 4":
-            return _ExhibitorData(_DesignerData(name), "silver", "sponsor", [
-                _AssetData("logo.png", "logo", _FileFormatData("PNG", "png"), id=1),
-                _AssetData("foo.png", "image", _FileFormatData("PNG", "png"), _MediaTypeData("Newsletter", "Header"), id=2),
-                _AssetData("web.png", "image", _FileFormatData("PNG", "png"), _MediaTypeData("Newsletter"), id=3),
-                _AssetData("web.png", "logo", _FileFormatData("PNG", "png"), _MediaTypeData("Website"), id=5),
-                _AssetData("description", "text", _FileFormatData("text", "txt"), id=4)
-            ])
-        else:
-            return _ExhibitorData(_DesignerData(name), "showcase", "showcase")
-
 class Contacts:
     @staticmethod
     def get_by_email(email):
@@ -342,13 +377,11 @@ class Contacts:
     @staticmethod
     def get_or_create(name, email):
         contact = Contacts.get_by_email(email)
-        if contact:
-            return contact
-        else:
+        if not contact:
             contact = model.Contact(name=name, email=email)
             model.db.session.add(contact)
             model.db.session.commit()
-            return contact
+        return contact
     
     @staticmethod
     def save(name, email):
@@ -384,114 +417,40 @@ class Invoice:
         model.db.session.commit()
         return deal.invoice.paid
 
-class AssetDefinition:
-    @staticmethod
-    def get_by_level(level):
-        if level == "silver":
-            return [
-                _AssetDefinitionData("Newsletter Header", level, "image",
-                    [_FileFormatData("PNG", "png"), _FileFormatData("JPEG", "jpeg")],
-                    [_MediaTypeData("Newsletter", "Header")]
-                ),
-                _AssetDefinitionData("Website", level, "logo",
-                    [_FileFormatData("PNG", "png"), _FileFormatData("JPEG", "jpeg")],
-                    [_MediaTypeData("Website")]
-                ),
-                _AssetDefinitionData("Description", level, "text",
-                    [_FileFormatData("text", "txt")],
-                    [_MediaTypeData("Website")]
-                )
-            ]
-        else:
-            return [
-                _AssetDefinitionData("Logo", level, "logo",
-                    [_FileFormatData("PNG", "png")],
-                    [_MediaTypeData("Program"), _MediaTypeData("Newsletter"), _MediaTypeData("Website"), _MediaTypeData("Digital Guide")]
-                )
-            ]
-    
-    @staticmethod
-    def get_matches(asset_definition, assets):
-        '''
-        # base query
-        def_no_location = asset_definition.media_types.filter(model.MediaType.location == None)
-        def_with_location = asset_definition.media_types.filter(model.MediaType.location != None)
-        matching_assets = assets \
-            .filter(model.Asset.type == asset_definition.type) \
-            .filter(model.Asset.format.in_(asset_definition.formats)) \
-            .filter(or_(model.Asset.media_type == None,
-                model.Asset.media_type.name.in_(def_no_location.query(model.MediaType.name)),
-                model.Asset.media_type.in_(def_with_location),
-                _and(model.Asset.media_type.location == None, model.Asset.media_type.name.in_(def_with_location.query(model.MediaType.name)))
-            )) \
-        .all()
-        '''
-        '''
-        # splitting the table
-        def_no_location = asset_definition.media_types.filter(model.MediaType.location == None)
-        def_with_location = asset_definition.media_types.filter(model.MediaType.location != None)
-        matching_assets_query = \
-            _and(model.Asset.type == asset_definition.type,
-                model.Asset.format.in_(asset_definition.formats),
-                or_(model.Asset.media_type == None,
-                    model.Asset.media_type.name.in_(def_no_location.query(model.MediaType.name)),
-                    model.Asset.media_type.in_(def_with_location),
-                    _and(model.Asset.media_type.location == None,
-                        model.Asset.media_type.name.in_(def_with_location.query(model.MediaType.name)))
-                ))
-        matches = assets.filter(matching_assets_query).all()
-        unmatched_assets = assets.filter(not_(matching_assets_query)).all()
-        return matches, unmatched_assets
-        '''
-        matches = []
-        unmatched_assets = []
-        for asset in assets:
-            if asset.type == asset_definition.type:
-                matches.append(asset)
-            else:
-                unmatched_assets.append(asset)
-        return matches, unmatched_assets
-
-class Asset:
-    pass
-
-
 class Users:
     @staticmethod
     def get_all():
         return model.User.query.all()
     
     @staticmethod
-    def get_by_role(role_name):
-        return model.User.query.filter_by(role_name=role_name).all()
+    def get_by_role(role):
+        return UserRoles.get(role).users
     
     @staticmethod
     def get_by_username(username):
-        return model.User.query.filter(model.User.user_auth.has(username=username)).first()
+        return model.User.query.filter_by(username=username).first()
+    
+    @staticmethod
+    def create(username, email, role_names, first_name=None, last_name=None):
+        new_password = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(12))
+        new_password_hash = utils.encrypt_password(new_password)
+        user = model.user_datastore.create_user(first_name=first_name, last_name=last_name, email=email, username=username, password=new_password_hash)
+        user.roles = [UserRoles.get(role_name) for role_name in role_names]
+        model.db.session.commit()
+        return user
 
     @staticmethod
-    def get_or_create(username, role, first_name=None, last_name=None, email=None):
+    def get_or_create(username, email, role_names, first_name=None, last_name=None):
         user = Users.get_by_username(username)
         if user:
             return user
         else:
-            new_password = ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(12))
-            user_auth = model.UserAuth(username=username, password=model.user_manager.hash_password(new_password))
-            user = model.User(role_name=role, user_auth=user_auth)
-            if first_name:
-                user.first_name = first_name
-            if last_name:
-                user.last_name = last_name
-            if email:
-                user.emails = [UserEmails.get_or_create(user, email)]
-            model.db.session.add(user)
-            model.db.session.commit()
-            return user
+            return Users.create(username, email, role_names, first_name, last_name)
     
     @staticmethod
-    def new(first_name, last_name, email, role, username=None):
+    def new(first_name, last_name, email, role_names, username=None):
         username = username or email.split('@')[0]
-        return Users.get_or_create(username, role, first_name, last_name, email)
+        return Users.get_or_create(username, email, role_names, first_name, last_name)
     
     @staticmethod
     def update_name(username, first_name, last_name):
@@ -502,38 +461,26 @@ class Users:
         return user
     
     @staticmethod
-    def update_role(username, role):
+    def update_roles(username, role_names):
         user = Users.get_by_username(username)
-        user.role = role
-        model.db.session.commit()
-        return user.role
+        if role_names:
+            user.roles = [UserRoles.get(role_name) for role_name in role_names]
+            model.db.session.commit()
+        return user.role_names_str
     
     @staticmethod
     def update_email(username, email):
         user = Users.get_by_username(username)
-        user.emails = [UserEmails.get_or_create(user, email)]
+        user.email = email
         model.db.session.commit()
-        return user.emails[0].email
+        return user.email
     
     @staticmethod
     def delete(username):
-        user = model.User.query.filter(model.User.user_auth.has(username=username)).one()
+        user = model.User.query.filter_by(username=username).one()
         model.db.session.delete(user)
         model.db.session.commit()
         return user.username
-
-class UserEmails:
-    @staticmethod
-    def get_or_create(user, email):
-        user_email = model.UserEmail.query.filter_by(user_id=user.id, email=email).first()
-        if user_email:
-            return user_email
-        else:
-            user_email = model.UserEmail(email=email, is_primary=True)
-            model.db.session.add(user_email)
-            model.db.session.commit()
-            return user_email
-
 
 class DesignerTypes:
     @staticmethod
@@ -570,84 +517,20 @@ class DealLevels:
     def get(name):
         return model.DealLevel.query.filter_by(name=name).one()
 
-######################
-# Other, non-DB data #
-######################
-
-class UserRoles(Enum):
-    ADMIN = "admin"
-    SALES = "sales"
-    MARKETING = "marketing"
+class UserRoles:
+    @staticmethod
+    def get_all():
+        return model.UserRole.query.all()
     
-    def __init__(self, role):
-        self.role = role
+    @staticmethod
+    def get(name):
+        return model.UserRole.query.filter_by(name=name).one()
+
+class Benefits:
+    @staticmethod
+    def get_by_level(deal_level):
+        pass
     
-
-##### Model Classes #####
-# These classes are serving the purpose of model classes during development
-
-import random
-
-class _ShowcaseData:
-    def __init__(self, designer):
-        self.designer = designer
-        self.game_name = "Test game NAME"
-        self.game_homepage = "http://amazon.com"
-        self.game_description = "Description\nof the game"
-    
-    @property
-    def level(self):
-        return "Showcase"
-
-class _ExhibitorData:
-    def __init__(self, designer, level, type, assets=[]):
-        self.designer = designer
-        self.level = level
-        self.type = type
-        self.assets = assets
-        
-        for asset in self.assets:
-            asset.exhibitor = self
-
-class _AssetDefinitionData:
-    def __init__(self, name, level, type, formats, media_types):
-        self.id = random.randint(1, 100)
-        self.name = name
-        self.level = level
-        self.type = type # text or image
-        self.formats = formats
-        self.media_types = media_types
-
-class _FileFormatData:
-    def __init__(self, name, ext):
-        self.id = random.randint(1, 100)
-        self.name = name
-        self.ext = ext
-
-class _MediaTypeData:
-    def __init__(self, name, location=None):
-        self.id = random.randint(1, 100)
-        self.name = name
-        self.location = location
-    
-    @property
-    def display_name(self):
-        if self.location:
-            return "{} - {}".format(self.name, self.location)
-        else:
-            return self.name
-
-class _AssetData:
-    def __init__(self, filename, type, format, media_type=None, id=None):
-        self.id = id or random.randint(1, 100)
-        self.timestamp = datetime.datetime.now()
-        self.filename = filename
-        self.type = type
-        self.format = format
-        self.media_type = media_type
-    
-    def __hash__(self):
-        return self.id
-    
-    def __eq__(self, other):
-        return self.id == other.id
+    @staticmethod
+    def get_by_showcase():
+        pass

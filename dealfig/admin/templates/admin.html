@@ -1,0 +1,40 @@
+{% extends "admin-layout.html" %}
+{% import 'components.html' as components %}
+{% import 'modals.html' as modals %}
+{% import 'admin-user.html' as admin_user %}
+
+{% block title %}Admin Page{% endblock %}
+
+{% block header %}
+<h2>Admin Page</h2>
+{% endblock %}
+
+{% block content %}
+<div>
+    <ul class="nav nav-tabs" role="tablist">
+        <li role="presentation" class="active"><a href="#users" aria-controls="home" role="tab" data-toggle="tab">Manage Users</a></li>
+        <li role="presentation"><a href="#profile" aria-controls="profile" role="tab" data-toggle="tab">Profile</a></li>
+    </ul>
+    
+    <div class="tab-content">
+        <!-- Manage Users tab -->
+        <div role="tabpanel" class="tab-pane active" id="users">
+            {% include "admin-user.html" %}
+        </div>
+        <div role="tabpanel" class="tab-pane" id="profile">Other</div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block css %}
+button.delete-user {
+    position: absolute;
+    right: -80px;
+    top: -27px;
+}
+{% endblock %}
+
+{% block js %}
+{{ admin_user.js()|safe }}
+{% endblock %}

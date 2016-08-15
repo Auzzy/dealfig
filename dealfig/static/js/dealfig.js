@@ -52,18 +52,25 @@ function process_email(value) {
 }
 
 function process_value(value, type) {
-    if (type === "url") {
-        var uri = process_uri(value);
-        if (uri != null) {
-            return uri;
-        }
-    } else if (type === "email") {
-        var email = process_email(value);
-        if (email != null) {
-            return email;
-        }
+    if ($.type(value) == "array") {
+        var new_values = $.map(value, function(val, index) {
+            return process_value(val, type);
+        });
+        return new_values;
     } else {
-        return value;
+        if (type === "url") {
+            var uri = process_uri(value);
+            if (uri != null) {
+                return uri;
+            }
+        } else if (type === "email") {
+            var email = process_email(value);
+            if (email != null) {
+                return email;
+            }
+        } else {
+            return value;
+        }
+        return null;
     }
-    return null;
 }

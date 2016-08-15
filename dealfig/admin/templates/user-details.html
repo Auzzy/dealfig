@@ -1,4 +1,5 @@
 {% import 'modals.html' as modals %}
+{% import 'components.html' as components %}
 
 <div style="font-weight: bold;">Name
     <button type="button" class="btn btn-info btn-xs" data-toggle="modal" data-target="#{{ modals.modal_id('name') }}">
@@ -11,9 +12,9 @@
 
 <div style="height: 10px;"></div>
 
-<div style="font-weight: bold;">Role</div>
-<button type="button" class="btn btn-default" data-toggle="modal" data-target="#{{ modals.modal_id('role') }}" id="role-display" style="min-width:100px; min-height: 30px;">
-    {{ user.role_name }}
+<div style="font-weight: bold;">Roles</div>
+<button type="button" class="btn btn-default" data-toggle="modal" data-target="#{{ modals.modal_id('roles') }}" id="roles-display" style="min-width:100px; min-height: 30px;">
+    {{ user.role_names_str }}
 </button>
 
 <div style="height: 10px;"></div>
@@ -24,35 +25,47 @@
     </button>
 </div>
 <div style="margin-left:25px; min-height:1em;">
-    {% if user.emails %}
-    <a id="email-display" href="{{ user.emails[0] }}" target="_blank">{{ user.emails[0] }}</a>
-    {% else %}
-    <a id="email-display" href="" target="_blank"></a>
-    {% endif %}
+    <a id="email-display" href="{{ user.email }}" target="_blank">{{ user.email }}</a>
 </div>
 
 <!-- Input modals -->
 <!-- Name modal -->
-{% with %}
-{% set form_modal_body %}
+{%- with -%}
+{%- set form_modal_body -%}
 <label for="first_name_input">First Name</label>
 <input type="text" class="form-control" id="first_name_input" placeholder="First Name" value="{{ user.first_name }}" />
 <label for="last_name_input">Last Name</label>
 <input type="text" class="form-control" id="last_name_input" placeholder="Last Name" value="{{ user.last_name }}" />
-{% endset %}
+{%- endset -%}
 {{ modals.form_modal(modals.modal_id("name"), "Name", form_modal_body) }}
-{% endwith %}
+{%- endwith -%}
 <!-- User Role modal -->
-{{ modals.list_modal(modals.modal_id('role'), "Role", user_roles) }}
+<!-- {#{{ modals.list_modal(modals.modal_id('role'), "Role", user_roles) }} #} -->
+{%- with -%}
+{%- set form_modal_body -%}
+{{ components.list_group(modals.modal_id("roles"), user_roles) }}
+{%- endset -%}
+{{ modals.form_modal(modals.modal_id("roles"), "Roles", form_modal_body) }}
+{%- endwith -%}
 <!-- Email modal -->
-{{ modals.textbox_modal(modals.modal_id('email'), "Email", user.emails[0], "email") }}
+{{ modals.textbox_modal(modals.modal_id('email'), "Email", user.email, "email") }}
 
 <script>
+// Initialize user role modal
+var options = $("#{{ components.list_group_id(modals.modal_id('roles')) }}").children(":button");
+{% for role_name in user.role_names -%}
+$(options).filter("[value='{{ role_name }}']").addClass("active");
+{% endfor -%}
+
 // Modal JavaScript
 {% with input_map = {"first_name": {"input": "#first_name_input", "display": "#first_name_display"}, "last_name": {"input": "#last_name_input", "display": "#last_name_display"}} %}
 {{ modals.form_modal_js(modals.modal_id("name"), url_for('admin.update_user_name', username=user.username), input_map)|safe }}
 {% endwith %}
 
-{{ modals.list_modal_js(modals.modal_id('role'), url_for('admin.update_user_role', username=user.username), "role-display")|safe }}
+{{ components.select_group(modals.modal_id("roles"))|safe }}
+{% with input_map = {"roles": {"input": components.active_selector(modals.modal_id("roles")), "display": "#roles-display"}} %}
+{{ modals.form_modal_js(modals.modal_id("roles"), url_for('admin.update_user_roles', username=user.username), input_map)|safe }}
+{% endwith %}
+
 {{ modals.textbox_modal_js(modals.modal_id('email'), url_for('admin.update_user_email', username=user.username), "email-display")|safe }}
 </script>

@@ -4,9 +4,9 @@ from dealfig import data, filters
 from dealfig.leads import app
 
 @app.route("/")
-@app.route("/list/<year>")
-def active(year=None):
-    return render_template("list-leads.html", leads=data.Leads.get_by_year(year))
+@app.route("/list/<event_name>")
+def active(event_name=None):
+    return render_template("list-leads.html", leads=data.Leads.get_by_event(event_name))
 
 @app.route("/<designer>/create", methods=["POST"])
 def create(designer):
@@ -14,9 +14,9 @@ def create(designer):
     return url_for('leads.info', designer=designer)
 
 @app.route("/<designer>")
-@app.route("/<designer>/<year>")
-def info(designer, year=None):
-    lead = data.Leads.get_by_designer(designer, year)
+@app.route("/<designer>/<event_name>")
+def info(designer, event_name=None):
+    lead = data.Leads.get_by_designer(designer, event_name)
     owner_list = data.Users.get_by_role("sales")
     return render_template("lead-info.html", lead=lead, owner_list=owner_list)
 

@@ -1,0 +1,70 @@
+{% import 'modals.html' as modals %}
+{% import 'components.html' as components %}
+
+<div style="height:20px;">&nbsp;</div>
+            
+<button type="button" class="btn btn-primary" data-toggle="modal" data-target="#{{ modals.modal_id('user') }}">
+    New User...
+</button>
+
+<div style="height:20px;">&nbsp;</div>
+
+<table id="user-table" class="table table-striped advanced-table" style="width:50%;">
+    <thead>
+        <tr>
+            <th style="min-width:50px;">Name</th>
+            <th style="min-width:50px;">Username</th>
+            <th style="min-width:50px;">Roles</th>
+            <th style="min-width:50px;">Email</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users|sort(attribute="last_name") %}
+        <tr>
+            <td><a href="{{ url_for('admin.user_info', username=user.username) }}">{{ user }}</a></td>
+            <td>{{ user.username }}</td>
+            <td>{{ user.role_names_str }}</td>
+            <td>
+                <a href="mailto:{{ user.email }}">{{ user.email }}</a>
+                <div style="position:relative">
+                    <button type="button" class="btn btn-danger delete-user" data-username="{{ user.username }}">Delete</button>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% with %}
+{% set form_modal_body %}
+<label for="first_name_input">First Name</label>
+<input type="text" class="form-control" id="first_name_input" placeholder="First Name" />
+<label for="last_name_input">Last Name</label>
+<input type="text" class="form-control" id="last_name_input" placeholder="Last Name" />
+<label for="email_input">Email</label>
+<input type="email" class="form-control" id="email_input" placeholder="Email" />
+<div style="min-height:10px;">&nbsp;</div>
+<label for="{{ components.list_group_id(modals.modal_id('user')) }}">User Role</label>
+{{ components.list_group(modals.modal_id("user"), user_roles) }}
+{% endset %}
+{{ modals.form_modal(modals.modal_id("user"), "New User", form_modal_body) }}
+{% endwith %}
+
+{% macro js() %}
+$(".delete-user").click(function() {
+    var delete_button = this;
+    var username = $(this).data("username");
+    $.post("{{ url_for('admin.delete_user') }}", { username: username })
+        .done(function(data) {
+            $(delete_button).closest("tr").remove();
+        })
+        .fail(function( jqXHR, textStatus ) {
+            alert("Request failed: " + textStatus);
+        });
+});
+
+{{ components.select_group(modals.modal_id("user"))|safe }}
+
+{% set input_map = {"first_name": {"input": "#first_name_input"}, "last_name": {"input": "#last_name_input"}, "email": {"input": "#email_input"}, "user_role": {"input": components.active_selector(modals.modal_id("user"))}} %}
+{{ modals.form_modal_js(modals.modal_id("user"), url_for('admin.new_user'), input_map, True)|safe }}
+{% endmacro %}
