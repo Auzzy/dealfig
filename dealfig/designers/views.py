@@ -1,4 +1,4 @@
-from flask import jsonify, redirect, render_template, request, url_for
+from flask import jsonify, render_template, request, url_for
 
 from dealfig import data
 from dealfig.designers import app

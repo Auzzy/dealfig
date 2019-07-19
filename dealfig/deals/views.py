@@ -22,7 +22,7 @@ def create(designer):
 def info(designer, event_name=None):
     deal = data.Deals.get_by_designer(designer, event_name)
     owner_list = data.Users.get_all()
-    level_list = data.DealLevels.get_all()
+    level_list = deal.event.deal_levels
     return render_template("deal-info.html", deal=deal, owner_list=owner_list, level_list=level_list)
 
 @app.route("/<designer>/owner", methods=["POST"])

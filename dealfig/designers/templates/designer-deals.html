@@ -1,7 +1,7 @@
 <table id="deals-table" class="table table-striped advanced-table" style="width:40%;">
     <thead>
         <tr>
-            <th style="min-width:50px;">Year</th>
+            <th style="min-width:50px;">Event</th>
             <th style="min-width:50px;">Owner</th>
             <th style="min-width:50px;">Level</th>
         </tr>
@@ -10,8 +10,8 @@
         {% for deal in designer.deals|sort(True, attribute="event.name") %}
         <tr>
             <td><a href="{{ url_for('deals.info', designer=designer.name, event_name=deal.event.name) }}">{{ deal.event.name }}</a></td>
-            <td>{{ deal.owner }}</td>
-            <td>{{ deal.level }}</td>
+            <td>{{ deal.owner or "" }}</td>
+            <td>{{ deal.level or "" }}</td>
         </tr>
         {% endfor %}
     </tbody>

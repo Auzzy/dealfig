@@ -1,4 +1,4 @@
-from flask import Blueprint, current_app
+from flask import Blueprint, current_app, g
 from flask.ext.security import current_user, login_required
 from flaskext.uploads import configure_uploads, UploadSet
 
@@ -24,9 +24,14 @@ app.upload_set_config = PatchedDict()
 
 # configure_uploads(app, (preview_uploader))
 
-from dealfig import views
+from dealfig import model, views
 
 # Require the user to be logged in to access any endpoint, except /login
 for endpoint in app.view_functions.keys():
     if app.view_functions[endpoint].__name__ != "login":
         app.view_functions[endpoint] = login_required(app.view_functions[endpoint])
+
+@app.before_request
+def before_request():
+    g.events = model.Event.query.all()
+    g.active_event = model.Event.query.filter_by(active=True).first()

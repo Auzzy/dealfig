@@ -21,7 +21,7 @@ def new_event():
 
 @app.route("/event/<event_name>")
 def info(event_name):
-    event = data.Events.get(event_name)
+    event = data.Events.get_by_name(event_name)
     return render_template("event.html", event=event)
 
 @app.route("/event/<event_name>/update_start_date", methods=["POST"])

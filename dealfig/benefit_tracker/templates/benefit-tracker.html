@@ -14,9 +14,9 @@
         <tbody>
             {% for exhibitor in exhibitors %}
             <tr>
-                <td><a href="{{ url_for('benefit_tracker.benefits', designer=exhibitor.name) }}">{{ exhibitor.name }}</a></td>
+                <td><a href="{{ url_for('benefit_tracker.benefits', designer_name=exhibitor.name) }}">{{ exhibitor.name }}</a></td>
                 <td>
-                    {%- if exhibitor.active_deal and active_showcase -%}
+                    {%- if exhibitor.active_deal and exhibitor.active_showcase -%}
                     Sponsor and Showcase
                     {%- elif exhibitor.active_deal -%}
                     Sponsor

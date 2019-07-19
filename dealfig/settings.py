@@ -11,7 +11,7 @@ WTF_CSRF_ENABLED = True
 SECRET_KEY = "e211788b-355d-4da4-844c-d7a244992a43"
 
 # Flask-Uploads
-# UPLOADS_DEFAULT_DEST = os.path.join(basedir, "uploads")
+UPLOADS_DEFAULT_DEST = os.path.join(basedir, "uploads")
 
 # Flask-Security
 # SECURITY_USER_IDENTITY_ATTRIBUTES = "username"    # I can enable this to allow login via username (http://stackoverflow.com/a/36929329/6516357)

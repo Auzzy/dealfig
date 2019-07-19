@@ -1,4 +1,5 @@
-import datetime
+# import datetime
+import os
 import random
 import string
 from enum import Enum
@@ -7,7 +8,7 @@ from enum import Enum
 from flask.ext.security import current_user, utils
 from sqlalchemy import and_, not_, or_
 
-from dealfig import model
+from dealfig import filehandler, model
 
 # Note that this object doesn't currently expose the end_date, start_time, or
 # end_time properties of the underlying Event table. They are present in the
@@ -174,7 +175,8 @@ class Leads:
         event = Events.active()
         lead = Leads._get(designer, event)
         if not lead:
-            lead = model.Lead(year=datetime.datetime.today().year, status=LeadStatus.get_initial(), event=event)
+            # lead = model.Lead(year=datetime.datetime.today().year, status=LeadStatus.get_initial(), event=event)
+            lead = model.Lead(status=LeadStatus.get_initial(), event=event)
             designer.leads.append(lead)
             model.db.session.commit()
         return lead
@@ -201,7 +203,7 @@ class Comments:
     def create(designer_name, text, user=None):
         lead = Leads.get_by_designer(designer_name)
         user = user or current_user
-        comment = model.Comment(user_id=user.id, text=text, created=datetime.datetime.now())
+        comment = model.Comment(user_id=user.id, text=text)
         lead.comments.append(comment)
         model.db.session.commit()
         return comment
@@ -210,7 +212,7 @@ class Comments:
     def edit(id, text):
         comment = model.Comment.query.get(id)
         comment.text = text
-        comment.edited = datetime.datetime.now()
+        comment.edited = model.get_current_datetime()
         model.db.session.commit()
         return comment
 
@@ -336,7 +338,8 @@ class Showcases:
         event = Events.active()
         showcase = Showcases._get(designer, event)
         if not showcase:
-            showcase = model.Showcase(year=datetime.datetime.today().year, event=event)
+            # showcase = model.Showcase(year=datetime.datetime.today().year, event=event)
+            showcase = model.Showcase(event=event)
             designer.showcase = showcase
             model.db.session.commit()
         return showcase
@@ -416,6 +419,35 @@ class Invoice:
         deal.invoice.paid = date
         model.db.session.commit()
         return deal.invoice.paid
+
+class BenefitsManager:
+    @staticmethod
+    def save_image(designer_name, benefit_name, image_obj):
+        ImageAssets.save(designer_name, benefit_name, image_obj)
+
+    @staticmethod
+    def load_image():
+        pass
+
+class ImageAssets:
+    @staticmethod
+    def create(filename):
+        image_asset = model.ImageAsset(filename=filename)
+        model.db.session.add(image_asset)
+        model.db.session.commit()
+        return image_asset
+
+    @staticmethod
+    def save(designer_name, benefit_name, image_obj):
+        event = Events.active()
+        designer = Designers.get_by_name(designer_name)
+        image_asset_definition = model.ImageAssetDefinition.query.filter_by(name=benefit_name, event_id=event.id).one()
+
+        filename = filehandler.save_image(designer_name, benefit_name, image_obj)
+
+        image_asset = ImageAssets.create(filename)
+        designer.image_assets.append(image_asset)
+        image_asset_definition.assets.append(image_asset)
 
 class Users:
     @staticmethod
@@ -526,11 +558,29 @@ class UserRoles:
     def get(name):
         return model.UserRole.query.filter_by(name=name).one()
 
+
+# Container for all benefits types to ease management
 class Benefits:
+    def __init__(self, image_assets=set(), text_assets=set()):
+        self.image_assets = set(image_assets)
+        self.text_assets = set(text_assets)
+
+    def intersection(self, other):
+        image_assets = self.image_assets.intersection(set(other.image_assets))
+        text_assets = self.text_assets.intersection(set(other.text_assets))
+        return Benefits(image_assets, text_assets)
+
+    def difference(self, other):
+        image_assets = self.image_assets.difference(set(other.image_assets))
+        text_assets = self.text_assets.difference(set(other.text_assets))
+        return Benefits(image_assets, text_assets)
+
+    def __and__(self, other):
+        return self.intersection(other)
+
+    def __sub__(self, other):
+        return self.difference(other)
+
     @staticmethod
-    def get_by_level(deal_level):
-        pass
-    
-    @staticmethod
-    def get_by_showcase():
-        pass
+    def load(benefits):
+        return Benefits(benefits.image_assets, benefits.text_assets)

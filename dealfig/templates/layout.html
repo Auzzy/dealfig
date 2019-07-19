@@ -15,6 +15,7 @@
     <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
     <script src="//cdn.datatables.net/1.10.9/js/jquery.dataTables.js"></script>
     <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap-filestyle.js') }}"></script>
     <script src="{{ url_for('static', filename='js/dealfig.js') }}"></script>
     
     <script type="text/javascript">
@@ -82,6 +83,19 @@
 </head>
 <body style="padding:10px;">
     <div id="header">
+        <!--
+        <div class="dropdown pull-right">
+            <button class="btn btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                Active Event: Dropdown
+                <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenu1">
+                {% for event in g.events %}
+                <li><a href="#">{{ event.name }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        -->
         {% block header %}{% endblock %}
     </div>
     <div id="content">
